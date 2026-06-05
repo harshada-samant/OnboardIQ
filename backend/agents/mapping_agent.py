@@ -25,10 +25,11 @@ from botocore.exceptions import ClientError, NoCredentialsError
 from tools.output_tools import save_output, load_output
 
 
-OUTPUT_DIR   = "outputs"
+import config
+
 MAX_RETRIES  = 2
 RETRY_DELAY  = 3
-USER_MAPPING_FILE = os.path.join(OUTPUT_DIR, "user_mappings.json")
+
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -101,17 +102,19 @@ def _parse_json(raw: str) -> dict:
 
 def _load_user_mappings() -> list:
     """Load manually confirmed/overridden mappings from disk."""
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    if not os.path.exists(USER_MAPPING_FILE):
+    path = os.path.join(config.OUTPUT_DIR, "user_mappings.json")
+    os.makedirs(config.OUTPUT_DIR, exist_ok=True)
+    if not os.path.exists(path):
         return []
-    with open(USER_MAPPING_FILE) as f:
+    with open(path) as f:
         return json.load(f)
 
 
 def _save_user_mappings(mappings: list) -> None:
     """Persist user mappings immediately after every change."""
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    with open(USER_MAPPING_FILE, "w") as f:
+    path = os.path.join(config.OUTPUT_DIR, "user_mappings.json")
+    os.makedirs(config.OUTPUT_DIR, exist_ok=True)
+    with open(path, "w") as f:
         json.dump(mappings, f, indent=2)
 
 
@@ -230,7 +233,7 @@ def run_mapping_agent(context: dict, verbose: bool = True) -> dict:
         return context
 
     # Load target schema
-    schema_path = "schemas/target_schema.json"
+    schema_path = str(config.TARGET_SCHEMA_PATH)
     if not os.path.exists(schema_path):
         print(f"  x Target schema not found at {schema_path}")
         return context

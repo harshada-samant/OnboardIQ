@@ -15,7 +15,7 @@ from tools.output_tools import save_output
 # Ensure parent directory is in path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-OUTPUT_DIR = "outputs"
+import config
 
 
 def _resolve_file_path(file_name: str, source_files: list) -> str:
@@ -23,8 +23,9 @@ def _resolve_file_path(file_name: str, source_files: list) -> str:
     for path_str in source_files:
         if os.path.basename(path_str).lower() == file_name.lower():
             return path_str
-    # Fallback to local data folder
-    return os.path.join("data", "sample", file_name)
+    # Fallback to local user uploads folder
+    return str(config.INPUT_DIR / file_name)
+
 
 
 def _load_logical_table_df(logical_table_record: dict, source_files: list) -> pd.DataFrame:

@@ -36,7 +36,8 @@ from collections import defaultdict
 
 from tools.sql_parser import parse_sql_file
 
-OUTPUT_DIR = "outputs"
+import config
+
 
 
 # -------------------------------------------------------
@@ -360,7 +361,7 @@ def build_context_payload(file_paths: list) -> dict:
     }
     """
 
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(config.OUTPUT_DIR, exist_ok=True)
 
     # Step 1 — read all files
     print("  [payload] Reading files...")
@@ -380,7 +381,7 @@ def build_context_payload(file_paths: list) -> dict:
 
     # Step 5 — build and save registry
     registry = _build_file_registry(groups)
-    registry_path = os.path.join(OUTPUT_DIR, "file_registry.json")
+    registry_path = str(config.FILE_REGISTRY_PATH)
     with open(registry_path, "w") as f:
         json.dump({
             "created_at": datetime.utcnow().isoformat(),

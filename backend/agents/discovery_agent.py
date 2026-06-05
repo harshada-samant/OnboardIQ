@@ -32,13 +32,10 @@ from agents.payload_builder import build_context_payload
 from tools.output_tools import save_output, load_output
 
 
-# -------------------------------------------------------
-# CONFIG
-# -------------------------------------------------------
+import config
 
 MAX_RETRIES   = 2      # max retry attempts per Gemini call
 RETRY_DELAY   = 3      # seconds to wait between retries
-OUTPUT_DIR    = "outputs"
 PARSE_RETRIES = 2      # extra retries when model output is invalid JSON
 
 
@@ -49,7 +46,8 @@ PARSE_RETRIES = 2      # extra retries when model output is invalid JSON
 def _checkpoint_path(file_name: str) -> str:
     """Returns the checkpoint file path for a given source file."""
     safe_name = file_name.replace("/", "_").replace("\\", "_")
-    return os.path.join(OUTPUT_DIR, f"phase1_{safe_name}.json")
+    return os.path.join(config.OUTPUT_DIR, f"phase1_{safe_name}.json")
+
 
 
 def _extract_retry_delay_seconds(error_text: str) -> int:
@@ -312,7 +310,7 @@ Analyse this single data table and return the entity profile JSON.
         }
 
     # ---- SAVE checkpoint immediately ----
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(config.OUTPUT_DIR, exist_ok=True)
     with open(checkpoint_file, "w") as f:
         json.dump(profile, f, indent=2, default=str)
 
@@ -528,14 +526,14 @@ def run_discovery_agent(file_paths: list, context: dict, verbose: bool = True) -
         Updated context with context["entity_catalog"] populated
     """
 
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(config.OUTPUT_DIR, exist_ok=True)
 
     if verbose:
         print("\n" + "=" * 60)
         print("  DISCOVERY AGENT  (two-phase + checkpointing)")
         print("=" * 60)
         print(f"  Max retries per table : {MAX_RETRIES}")
-        print(f"  Checkpoint dir        : {OUTPUT_DIR}/")
+        print(f"  Checkpoint dir        : {config.OUTPUT_DIR}/")
 
     # --------------------------------------------------
     # STEP 1 — Read all files → build payload
@@ -649,7 +647,7 @@ def run_discovery_agent(file_paths: list, context: dict, verbose: bool = True) -
         print(f"  Dup pairs     : {s['duplicate_entity_pairs']}")
         if s["failed_tables"]:
             print(f"  Failed tables : {s['failed_tables']}")
-        print(f"\n  Per-table checkpoints saved in: {OUTPUT_DIR}/phase1_*.json")
-        print(f"  To rerun from scratch, delete: {OUTPUT_DIR}/phase1_*.json")
+        print(f"\n  Per-table checkpoints saved in: {config.OUTPUT_DIR}/phase1_*.json")
+        print(f"  To rerun from scratch, delete: {config.OUTPUT_DIR}/phase1_*.json")
 
     return context

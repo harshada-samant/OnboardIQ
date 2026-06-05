@@ -14,9 +14,11 @@ import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 from tools.output_tools import save_output, load_output
 
-OUTPUT_DIR   = "outputs"
+import config
+
 MAX_RETRIES  = 2
 RETRY_DELAY  = 3
+
 
 # ── bedrock call helper ────────────────────────────────────────────────────────
 
@@ -162,11 +164,11 @@ def run_specification_agent(context: dict, verbose: bool = True) -> dict:
         print("=" * 60)
 
     # 1. Paths
-    schema_path  = "schemas/target_schema.json"
-    mapping_path = os.path.join(OUTPUT_DIR, "mapping_document.json")
-    quality_path = os.path.join(OUTPUT_DIR, "quality_report.json")
-    spec_path    = os.path.join(OUTPUT_DIR, "migration_spec.json")
-    md_spec_path = os.path.join(OUTPUT_DIR, "migration_spec.md")
+    schema_path  = str(config.TARGET_SCHEMA_PATH)
+    mapping_path = str(config.MAPPING_DOCUMENT_PATH)
+    quality_path = str(config.QUALITY_REPORT_PATH)
+    spec_path    = str(config.MIGRATION_SPEC_PATH)
+    md_spec_path = str(config.MIGRATION_SPEC_MD_PATH)
 
     # 2. Check Cache Validity
     if os.path.exists(spec_path) and os.path.exists(md_spec_path):

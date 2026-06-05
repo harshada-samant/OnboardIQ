@@ -8,7 +8,7 @@ Every agent calls this at the end to persist its results.
 import json
 import os
 from datetime import datetime
-from config import OUTPUT_DIR
+import config
 
 
 def save_output(data: dict, filename: str) -> dict:
@@ -21,7 +21,7 @@ def save_output(data: dict, filename: str) -> dict:
     Returns the file path so the LLM knows where it was saved.
     """
     try:
-        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        os.makedirs(config.OUTPUT_DIR, exist_ok=True)
 
         # Add metadata
         data["_meta"] = {
@@ -29,7 +29,7 @@ def save_output(data: dict, filename: str) -> dict:
             "filename": filename
         }
 
-        file_path = os.path.join(OUTPUT_DIR, filename)
+        file_path = os.path.join(config.OUTPUT_DIR, filename)
         with open(file_path, "w") as f:
             json.dump(data, f, indent=2, default=str)
 
@@ -49,7 +49,7 @@ def load_output(filename: str) -> dict:
     Used by downstream agents to read previous agent results.
     """
     try:
-        file_path = os.path.join(OUTPUT_DIR, filename)
+        file_path = os.path.join(config.OUTPUT_DIR, filename)
         if not os.path.exists(file_path):
             return {"error": f"Output file not found: {file_path}"}
 
@@ -58,3 +58,4 @@ def load_output(filename: str) -> dict:
 
     except Exception as e:
         return {"error": f"Failed to load output: {str(e)}"}
+

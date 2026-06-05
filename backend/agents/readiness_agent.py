@@ -37,9 +37,11 @@ import re
 import boto3
 from tools.output_tools import save_output, load_output
 
-OUTPUT_DIR  = "outputs"
+import config
+
 MAX_RETRIES = 2
 RETRY_DELAY = 3
+
 
 WEIGHTS = {
     "data_quality":  0.35,
@@ -503,7 +505,7 @@ def run_readiness_agent(context, verbose=True):
         print("  MIGRATION READINESS AGENT")
         print("=" * 60)
 
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(config.OUTPUT_DIR, exist_ok=True)
 
     # Load inputs — fall back to disk if context keys empty
     entity_catalog = context.get("entity_catalog") or {}
@@ -601,7 +603,7 @@ def run_readiness_agent(context, verbose=True):
 
     save_output(report, "readiness_report.json")
     context["readiness"] = report
-    _generate_markdown(report, os.path.join(OUTPUT_DIR, "readiness_report.md"))
+    _generate_markdown(report, str(config.READINESS_REPORT_MD_PATH))
 
     if verbose:
         print("\n" + "=" * 60)

@@ -29,12 +29,17 @@ def list_files(input_dir: str) -> list:
     )
 
 
-def run_pipeline(input_dir: str, verbose: bool = True, chat: bool = False) -> dict:
+def run_pipeline(input_dir: str = None, verbose: bool = True, chat: bool = False) -> dict:
+    import config
     load_and_validate_env()
+
+    if not input_dir:
+        input_dir = str(config.INPUT_DIR)
 
     files = list_files(input_dir)
     if not files:
         raise ValueError(f"No supported files found in {input_dir}.")
+
 
     print(f"Input files ({len(files)}): {[Path(f).name for f in files]}")
 

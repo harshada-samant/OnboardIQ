@@ -74,13 +74,12 @@ context = {
 
 ## 5. LLM Choice
 
-**Decision:** Groq (`llama-3.3-70b-versatile`) via `groq` SDK.
+**Decision:** AWS Bedrock (`us.anthropic.claude-sonnet-4-5-20250929-v1:0`) via `boto3` SDK.
 
 **Config:**
 ```python
 temperature=0.0       # deterministic — same input = same output
-max_tokens=2048
-response_format={"type": "json_object"}
+max_tokens=2048 (default/configurable)
 ```
 
 ---
@@ -123,10 +122,10 @@ Understand WHAT the data is.
 ### Checkpointing + Retry
 
 **Checkpointing (resume on crash):**
-- Before calling Groq, check if `outputs/phase1_<table>.json` exists
+- Before calling Bedrock, check if `outputs/phase1_<table>.json` exists
 - If yes and checkpoint status is not FAILED -> load from disk, skip API call
-- If yes and checkpoint status is FAILED -> reprocess table via Groq
-- If no -> call Groq, save result immediately after
+- If yes and checkpoint status is FAILED -> reprocess table via Bedrock
+- If no -> call Bedrock, save result immediately after
 - Crash after 6/10 tables = resume from table 7 on next run
 
 **Retry logic:**
@@ -228,51 +227,124 @@ Schema fingerprinting catches structurally identical files but misses semantical
 Example: `equip_id` vs `asset_no` — different names, same business meaning.
 This is detected in Phase 2 by the LLM, which receives all field names across all entities.
 Output: `potential_duplicate_entities` in entity catalog as entity pairs (`entity_a`, `entity_b`) with confidence and reasoning.
-Downstream agents (Profiling, Mapping) use this to treat them as one entity.
 
 ---
 
-## 9. Outputs Folder Structure
+## 9. Database Schema and Authentication
 
+OnboardIQ uses a local SQLite database for credentials, session management, and target schema selection persistence.
+
+### SQLite Database (`data/onboardiq.db`)
+Exposes the `users` table:
+```sql
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    target_schema TEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
-outputs/
+
+### Password Security & Seeding
+* Passwords are encrypted using `bcrypt` and verified using `bcrypt.checkpw()`. Plaintext credentials are never saved.
+* Seed scripts define two baseline demo accounts:
+  * `user1` / `password123`
+  * `user2` / `password123`
+
+### Target Schema Persistence Rules
+* The `target_schema` database column stores **only** the filename of the schema (e.g. `maximo.json`), never absolute paths or file contents.
+* Updates via `update_user_target_schema` validate:
+  - Non-empty string filename format.
+  - Suffix ending with `.json`.
+  - Existence of the schema file inside the `schemas/` directory.
+  - Path traversal checks preventing directory escapes (`Path(schema_name).name == schema_name`).
+  - Active existence of the `user_id` in the database.
+
+---
+
+## 10. Multi-User Workspace Routing & Isolation
+
+To support secure isolated concurrent workloads, the system routes folders dynamically.
+
+### Workspace Directory Layout
+Every authenticated user is assigned a separate folder:
+```text
+workspaces/
+└── users/
+    ├── {username}/
+    │   ├── uploads/          <- Input CSV/JSON source files (maps to config.INPUT_DIR)
+    │   ├── outputs/          <- Generated reports and snapshots (maps to config.OUTPUT_DIR)
+    │   └── chat_history.json <- Persistent chat context file
+```
+
+### Request-Time Middleware Reconfiguration
+* NICEGUI session cookies store `authenticated` (bool), `user_id` (int), and `username` (str).
+* **ASGI Middleware** (`frontend/middleware.py`) intercepts every incoming HTTP request. If the session is authenticated, it calls:
+  - `config.set_user_workspace(username)` to map all report path constants to the user's isolated `outputs/` folder.
+  - `configure_user_schema(user_id)` to verify and load the correct target schema file.
+* **Concurrency Model & Limitation:** Since NiceGUI processes ASGI request handlers sequentially in its main loop, this request-time reconfiguration dynamically refreshes global variables safely. For high-volume production, separate worker processes or thread-local context variables are required to achieve full thread-safe request isolation.
+
+### Target Schema Service Layer (`backend/schema_service.py`)
+Provides the public orchestrator API for future dashboard/UI integrations:
+* `get_schema_options() -> list[str]`: Lists alphabetically sorted available schema filenames from `schemas/`.
+* `get_user_schema_selection(user_id: int) -> str | None`: Retrieves the active user's selection filename.
+* `update_user_schema_selection(user_id: int, schema_name: str) -> bool`: Coordinates updates.
+  - Calls database persistence helpers.
+  - Calls configuration helpers.
+  - **Option A Recovery Logic:** If the schema file is deleted or missing from disk, path configuration fails (returns `False`), logs a warning, and preserves the previously loaded valid target schema path without corrupting the configuration.
+  - Logs selections: `[SCHEMA] Updated schema selection for {username}: {schema_name}`.
+
+---
+
+## 11. Outputs Folder Structure
+
+```text
+workspaces/users/{username}/outputs/
   file_registry.json          <- physical file -> logical table map (set by payload_builder)
   phase1_Assets.json          <- Phase 1 profile per logical table (set by Discovery Agent)
   phase1_WorkOrders.json
   phase1_Locations.json
   ...
   entity_catalog.json         <- final merged catalog (set by Discovery Agent)
-                                                             includes entities, summary, and potential_duplicate_entities
-  quality_report.json         <- set by Profiling Agent (not yet built)
-  mapping_document.json       <- set by Mapping Agent (not yet built)
-  migration_spec.json         <- set by Specification Agent (not yet built)
-  readiness_report.json       <- set by Readiness Agent (not yet built)
-  onboarding_plan.json        <- set by Planning Agent (not yet built)
+                                 includes entities, summary, and potential_duplicate_entities
+  quality_report.json         <- set by Profiling Agent
+  mapping_document.json       <- set by Mapping Agent
+  migration_spec.json         <- set by Specification Agent
+  readiness_report.json       <- set by Readiness Agent
+  onboarding_plan.json        <- set by Planning Agent
 ```
 
 ---
 
-## 10. Implementation Status
+## 12. Implementation Status
 
 | Component | Status | Notes |
 |-----------|--------|-------|
 | `tools/file_tools.py` | ✅ Done | read_file, load_dataframe |
 | `tools/stats_tools.py` | ✅ Done | get_column_stats, get_all_column_stats |
-| `tools/output_tools.py` | ✅ Done | save_output, load_output |
+| `tools/output_tools.py` | ✅ Done | save_output, load_output (uses config.OUTPUT_DIR dynamically) |
 | `tools/sql_parser.py` | ✅ Done | sqlglot-based DDL parser, auto dialect detection |
-| `agents/payload_builder.py` | ✅ Done | reads all files, deduplicates schemas, deduplicates logical names, builds file registry, returns one entry per logical table |
-| `agents/discovery_agent.py` | ✅ Done | two-phase, parallel, checkpointing, retry, semantic duplicate-entity detection, Groq client integration |
-| `agents/profiling_agent.py` | ⬜ Not started | |
-| `agents/mapping_agent.py` | ⬜ Not started | |
-| `agents/specification_agent.py` | ⬜ Not started | |
-| `agents/readiness_agent.py` | ⬜ Not started | |
-| `agents/planning_agent.py` | ⬜ Not started | |
-| `pipeline.py` | ✅ Done | loads .env, validates GROQ_API_KEY, lists supported files, runs Discovery Agent |
-| `main.py` | ✅ Done | Typer CLI runner for pipeline (`run --input --verbose/--quiet`) |
+| `database.py` | ✅ Done | SQLite connection initialization, bcrypt password checking, target schema persistence, username lookups |
+| `schema_manager.py` | ✅ Done | Available schemas listing, path resolution, path traversal checks, Option A configuration recovery |
+| `schema_service.py` | ✅ Done | Options listing, retrieval, no-op updates, validation, and error log orchestration |
+| `agents/payload_builder.py` | ✅ Done | Reads all files, deduplicates schemas, deduplicates logical names, builds file registry |
+| `agents/discovery_agent.py` | ✅ Done | Two-phase, parallel, checkpointing, retry, semantic duplicate-entity detection, Bedrock client integration |
+| `agents/profiling_agent.py` | ✅ Done | Computes null stats, unique value counts, validates PK uniqueness, referential integrity check |
+| `agents/mapping_agent.py` | ✅ Done | AI-generated source-to-target field mapping, merges manual interactive overrides |
+| `agents/specification_agent.py` | ✅ Done | Merges mappings and profiling reports to auto-generate data contracts (.json and .md specs) |
+| `agents/readiness_agent.py` | ✅ Done | Computes aggregate readiness score, categorizes risks, and enriches risk register via Bedrock |
+| `agents/planning_agent.py` | ✅ Done | Sequences entities into Silver waves based on dependency graph, enriches wave details via Bedrock |
+| `agents/conversational_assistant.py` | ✅ Done | Chat backend that answers queries and executes natural language mapping actions/overrides |
+| `pipeline.py` | ✅ Done | Loads .env, validates AWS credentials, lists supported files, runs all agents in sequence (Discovery -> Planning) |
+| `main.py` | ✅ Done | Typer CLI runner for pipeline and interactive chat assistant (`run` and `chat` commands) |
+| `middleware.py` | ✅ Done | ASGI http middleware reconfiguring workspace routes and active schemas on every authenticated request |
+| `pages/login.py` | ✅ Done | NiceGUI user login screen. Stores user session storage keys and configures active workspaces |
+| `pages/dashboard.py` | ✅ Done | NiceGUI welcome dashboard. Displays logged in username and workspace isolation paths |
 
 ---
 
-## 11. Known Gaps (Deferred)
+## 13. Known Gaps (Deferred)
 
 | Gap | Where | Plan |
 |-----|-------|------|

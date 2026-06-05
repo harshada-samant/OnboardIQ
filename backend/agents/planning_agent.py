@@ -57,9 +57,11 @@ import boto3
 from collections import defaultdict, deque
 from tools.output_tools import save_output, load_output
 
-OUTPUT_DIR  = "outputs"
+import config
+
 MAX_RETRIES = 2
 RETRY_DELAY = 3
+
 
 
 # ── Bedrock helper ─────────────────────────────────────────────────────────────
@@ -195,8 +197,10 @@ def _slugify(value):
 
 
 def _silver_csv_files(wave_number, wave_entities):
-    wave_dir = f"outputs/silver/wave_{wave_number:02d}"
-    return [f"{wave_dir}/{_slugify(entity)}.csv" for entity in wave_entities]
+    from pathlib import Path
+    wave_dir = Path(config.OUTPUT_DIR) / "silver" / f"wave_{wave_number:02d}"
+    return [str(wave_dir / f"{_slugify(entity)}.csv") for entity in wave_entities]
+
 
 
 def _wave_row_count(wave_entities, quality_report):
@@ -357,7 +361,7 @@ def _review_plan_with_user(plan, context, entities, entity_catalog, quality_repo
             return plan, False
 
         if approval in {"y", "yes"}:
-            _save_final_plan(plan, OUTPUT_DIR, context)
+            _save_final_plan(plan, config.OUTPUT_DIR, context)
             return plan, True
 
         if approval not in {"n", "no"}:
@@ -663,7 +667,7 @@ def run_planning_agent(context, verbose=True, interactive_review=False):
         print("  ONBOARDING PLANNING AGENT")
         print("=" * 60)
 
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(config.OUTPUT_DIR, exist_ok=True)
 
     # Load inputs — fall back to disk
     entity_catalog  = context.get("entity_catalog")  or {}
@@ -782,7 +786,7 @@ def run_planning_agent(context, verbose=True, interactive_review=False):
         if not approved:
             return context
     else:
-        _save_final_plan(plan, OUTPUT_DIR, context)
+        _save_final_plan(plan, config.OUTPUT_DIR, context)
 
     bsg = plan.get("bronze_silver_gold", {})
 

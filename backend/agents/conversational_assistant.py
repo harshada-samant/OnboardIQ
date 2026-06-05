@@ -40,7 +40,8 @@ from agents.specification_agent import run_specification_agent
 from tools.output_tools import load_output
 from context import save_snapshot
 
-OUTPUT_DIR = "outputs"
+import config
+
 
 
 # ── system prompt ─────────────────────────────────────────────────────────────
@@ -206,7 +207,7 @@ def _handle_mapping_action(action: dict, context: dict, verbose: bool) -> str:
         run_mapping_agent(context, verbose=False)
         
         # Remove cached specification to force rebuild
-        spec_path = os.path.join(OUTPUT_DIR, "migration_spec.json")
+        spec_path = str(config.MIGRATION_SPEC_PATH)
         if os.path.exists(spec_path):
             try:
                 os.remove(spec_path)
@@ -239,7 +240,7 @@ def _handle_mapping_action(action: dict, context: dict, verbose: bool) -> str:
             run_mapping_agent(context, verbose=False)
             
             # Remove cached specification to force rebuild
-            spec_path = os.path.join(OUTPUT_DIR, "migration_spec.json")
+            spec_path = str(config.MIGRATION_SPEC_PATH)
             if os.path.exists(spec_path):
                 try:
                     os.remove(spec_path)
@@ -305,7 +306,7 @@ def start_chat(context: dict, verbose: bool = True):
 
     # ── failsafe mechanism ───────────────────────────────────────────────────
     schema_keys = {"source_files", "entity_catalog", "file_registry", "quality_report", "mappings", "specification", "readiness", "plan"}
-    snapshot_path = os.path.join(OUTPUT_DIR, "context_snapshot.json")
+    snapshot_path = str(config.CONTEXT_SNAPSHOT_PATH)
     if not context or not context.get("entity_catalog"):
         if os.path.exists(snapshot_path):
             if verbose:

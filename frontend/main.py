@@ -22,6 +22,9 @@ import frontend.middleware
 # Import pages package to register UI routes
 import frontend.pages
 
+# Import pipeline service to register API endpoints
+import backend.pipeline_service
+
 # Run NiceGUI server
 ui.run(
     title='OnboardIQ - Data Onboarding',

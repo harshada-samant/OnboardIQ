@@ -33,15 +33,23 @@ def dashboard_page():
             ui.label(f'Logged in as: {username}').classes('text-body2 text-weight-medium').style('color: #334155;')
             ui.button('Logout', on_click=handle_logout).props('flat dense icon=logout').style('color: #ef4444; font-weight: 600;')
 
-    # Dashboard contents
-    with ui.column().classes('w-full q-pa-xl'):
-        with ui.card().classes('q-pa-xl bg-white w-full').style('border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04);'):
-            ui.label(f'Welcome back, {username}!').classes('text-h4 text-weight-bold q-mb-xs').style('color: #0f172a;')
-            ui.label('Your secure isolated workspace is ready.').classes('text-subtitle1 q-mb-lg').style('color: #64748b;')
+    # Main Container splitting the layout
+    with ui.row().classes('w-full no-wrap q-pa-xl gap-6') as main_container:
+        # Left Panel (placeholder)
+        left_panel = ui.column().classes('hidden')
+        
+        # Center Panel containing current dashboard welcome workspace card
+        with ui.column().classes('col-grow') as center_panel:
+            with ui.card().classes('q-pa-xl bg-white w-full').style('border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04);'):
+                ui.label(f'Welcome back, {username}!').classes('text-h4 text-weight-bold q-mb-xs').style('color: #0f172a;')
+                ui.label('Your secure isolated workspace is ready.').classes('text-subtitle1 q-mb-lg').style('color: #64748b;')
 
-            with ui.column().classes('w-full q-pa-md q-my-md').style('border-radius: 12px; border: 1px solid #bfdbfe; background: #eff6ff;'):
-                ui.label('User Space Isolation').classes('text-weight-bold text-caption q-mb-xs').style('color: #2563eb;')
-                ui.label(f'Output path: outputs/users/{username}/').classes('text-weight-medium text-body2').style('color: #1e40af;')
-                ui.label('All reports, catalogs, and mappings are stored exclusively in your folder.').classes('text-caption').style('color: #3b82f6;')
+                with ui.column().classes('w-full q-pa-md q-my-md').style('border-radius: 12px; border: 1px solid #bfdbfe; background: #eff6ff;'):
+                    ui.label('User Space Isolation').classes('text-weight-bold text-caption q-mb-xs').style('color: #2563eb;')
+                    ui.label(f'Output path: outputs/users/{username}/').classes('text-weight-medium text-body2').style('color: #1e40af;')
+                    ui.label('All reports, catalogs, and mappings are stored exclusively in your folder.').classes('text-caption').style('color: #3b82f6;')
 
-            ui.button('Proceed to Pipeline', on_click=lambda: ui.notify('Pipeline interface loading...')).props('no-caps').classes('q-mt-md q-px-lg q-py-sm text-white').style('background: #2563eb; border-radius: 8px; font-weight: 600;')
+                ui.button('Proceed to Pipeline', on_click=lambda: ui.notify('Pipeline interface loading...')).props('no-caps').classes('q-mt-md q-px-lg q-py-sm text-white').style('background: #2563eb; border-radius: 8px; font-weight: 600;')
+
+        # Right Panel (placeholder)
+        right_panel = ui.column().classes('hidden')
