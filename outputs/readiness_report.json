@@ -1,0 +1,109 @@
+{
+  "readiness_score": 81.8,
+  "readiness_grade": "B",
+  "sub_scores": {
+    "data_quality": 48.0,
+    "mapping_cover": 100.0,
+    "spec_complete": 100.0,
+    "rel_clarity": 100.0
+  },
+  "risk_register": [
+    {
+      "severity": "MEDIUM",
+      "entity": "Assets",
+      "title": "1 orphan record(s) (broken FK references)",
+      "root_cause": "Source data contains foreign key values pointing to parent records that were deleted, never migrated, or do not exist in the source system.",
+      "impact": "Records in Assets reference parent IDs that do not exist.",
+      "action": "Resolve missing parent records or nullify FK before loading."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Assets",
+      "title": "Field 'loc_code' contains high null percentage (20.0%).",
+      "root_cause": "Source system allows optional location assignment or data entry processes skip this field during asset creation.",
+      "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+      "action": "Review source data for this field and apply appropriate cleansing."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Assets",
+      "title": "Field 'status' contains high null percentage (10.0%).",
+      "root_cause": "Asset status field is not consistently populated during data entry or legacy records lack status values.",
+      "impact": "Check type NULL_CHECK failed on field 'status'.",
+      "action": "Review source data for this field and apply appropriate cleansing."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Assets",
+      "title": "Referential integrity check failed: 1 orphan records reference invalid 'Locations.location_key' values.",
+      "root_cause": "Assets reference location codes that do not exist in the Locations table due to data inconsistency or missing location records.",
+      "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'loc_code'.",
+      "action": "Review source data for this field and apply appropriate cleansing."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Locations",
+      "title": "4 orphan record(s) (broken FK references)",
+      "root_cause": "Hierarchical location structure contains child locations referencing parent locations that are missing or were not migrated.",
+      "impact": "Records in Locations reference parent IDs that do not exist.",
+      "action": "Resolve missing parent records or nullify FK before loading."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Locations",
+      "title": "Referential integrity check failed: 4 orphan records reference invalid 'Locations.location_key' values.",
+      "root_cause": "Self-referential parent-child location hierarchy has broken links where parent location keys are invalid or missing.",
+      "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'parent_ref'.",
+      "action": "Review source data for this field and apply appropriate cleansing."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Users",
+      "title": "Field 'email' contains high null percentage (20.0%).",
+      "root_cause": "User records created before email became mandatory or external/system users without email addresses in source system.",
+      "impact": "Check type NULL_CHECK failed on field 'email'.",
+      "action": "Review source data for this field and apply appropriate cleansing."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "WorkOrders",
+      "title": "1 orphan record(s) (broken FK references)",
+      "root_cause": "Work orders reference parent records (assets or locations) that were deleted or excluded from migration scope.",
+      "impact": "Records in WorkOrders reference parent IDs that do not exist.",
+      "action": "Resolve missing parent records or nullify FK before loading."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "WorkOrders",
+      "title": "Field 'closed_date' contains high null percentage (55.0%).",
+      "root_cause": "Majority of work orders are still open or in-progress, or closed date was not historically tracked in source system.",
+      "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+      "action": "Review source data for this field and apply appropriate cleansing."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "WorkOrders",
+      "title": "Referential integrity check failed: 1 orphan records reference invalid 'Assets.asset_no' values.",
+      "root_cause": "Work orders link to asset numbers that do not exist in Assets table due to asset deletion or data entry errors.",
+      "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'equip_id'.",
+      "action": "Review source data for this field and apply appropriate cleansing."
+    }
+  ],
+  "risk_summary": {
+    "CRITICAL": 0,
+    "HIGH": 0,
+    "MEDIUM": 10,
+    "LOW": 0
+  },
+  "degraded_mode": false,
+  "score_weights": {
+    "data_quality": 0.35,
+    "mapping_cover": 0.35,
+    "spec_complete": 0.2,
+    "rel_clarity": 0.1
+  },
+  "_meta": {
+    "saved_at": "2026-06-04T09:43:11.623112",
+    "filename": "readiness_report.json"
+  }
+}

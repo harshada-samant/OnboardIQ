@@ -1,0 +1,11 @@
+asset_no,asset_name,loc_code,status,purchase_date,cost
+A001,Pump Motor 1,LOC-01,Active,2020-01-15,15000
+A002,Conveyor Belt A,LOC-02,Active,2019-06-10,32000
+A003,Generator Unit,LOC-01,Inactive,2018-03-22,85000
+A004,Hydraulic Press,LOC-03,Active,2021-07-01,47000
+A005,Air Compressor,LOC-02,Under Maintenance,2020-11-30,12000
+A006,Forklift Unit 1,LOC-04,Active,2022-01-10,28000
+A007,Cooling Tower,LOC-01,Active,2017-09-14,95000
+A008,Boiler System,,Active,2019-04-05,110000
+A009,Control Panel B,LOC-03,Inactive,,9000
+A010,Pump Motor 2,LOC-02,Active,2021-03-18,15500

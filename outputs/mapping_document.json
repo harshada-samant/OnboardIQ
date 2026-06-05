@@ -1,0 +1,231 @@
+{
+  "mappings": [
+    {
+      "source_entity": "Users",
+      "target_entity": "User",
+      "field_mappings": [
+        {
+          "source_field": "user_id",
+          "target_field": "user_id",
+          "confidence_score": 1.0,
+          "transformation_logic": "direct",
+          "reasoning": "Exact match. Primary key to primary key mapping."
+        },
+        {
+          "source_field": "name",
+          "target_field": "full_name",
+          "confidence_score": 0.95,
+          "transformation_logic": "trim(name)",
+          "reasoning": "Semantic match. Source 'name' maps to target 'full_name'. Both represent user's name."
+        },
+        {
+          "source_field": "role",
+          "target_field": "role",
+          "confidence_score": 1.0,
+          "transformation_logic": "direct",
+          "reasoning": "Exact match. Job role field."
+        },
+        {
+          "source_field": "email",
+          "target_field": "email",
+          "confidence_score": 1.0,
+          "transformation_logic": "lower(trim(email))",
+          "reasoning": "Exact match. Email address field. Normalize to lowercase."
+        },
+        {
+          "source_field": "department",
+          "target_field": "department",
+          "confidence_score": 1.0,
+          "transformation_logic": "direct",
+          "reasoning": "Exact match. Department name field."
+        },
+        {
+          "source_field": "active",
+          "target_field": "is_active",
+          "confidence_score": 0.98,
+          "transformation_logic": "direct",
+          "reasoning": "Semantic match. Source 'active' (bool) maps to target 'is_active' (boolean). Same meaning."
+        }
+      ],
+      "unmapped_source_fields": [],
+      "unmapped_required_target_fields": []
+    },
+    {
+      "source_entity": "Locations",
+      "target_entity": "Location",
+      "field_mappings": [
+        {
+          "source_field": "location_key",
+          "target_field": "location_id",
+          "confidence_score": 0.95,
+          "transformation_logic": "trim(location_key)",
+          "reasoning": "Semantic match. Primary key 'location_key' maps to 'location_id'. Both are unique location identifiers."
+        },
+        {
+          "source_field": "loc_name",
+          "target_field": "location_name",
+          "confidence_score": 0.98,
+          "transformation_logic": "trim(loc_name)",
+          "reasoning": "Semantic match. 'loc_name' is abbreviated form of 'location_name'."
+        },
+        {
+          "source_field": "parent_ref",
+          "target_field": "parent_id",
+          "confidence_score": 0.95,
+          "transformation_logic": "trim(parent_ref)",
+          "reasoning": "Semantic match. 'parent_ref' (FK) maps to 'parent_id'. Both reference parent location."
+        },
+        {
+          "source_field": "site",
+          "target_field": "site",
+          "confidence_score": 1.0,
+          "transformation_logic": "direct",
+          "reasoning": "Exact match. Site name field."
+        },
+        {
+          "source_field": "building",
+          "target_field": "building",
+          "confidence_score": 1.0,
+          "transformation_logic": "direct",
+          "reasoning": "Exact match. Building name field."
+        },
+        {
+          "source_field": "floor",
+          "target_field": "floor",
+          "confidence_score": 1.0,
+          "transformation_logic": "direct",
+          "reasoning": "Exact match. Floor level field."
+        }
+      ],
+      "unmapped_source_fields": [],
+      "unmapped_required_target_fields": []
+    },
+    {
+      "source_entity": "Assets",
+      "target_entity": "Asset",
+      "field_mappings": [
+        {
+          "source_field": "asset_no",
+          "target_field": "c_asset_id",
+          "confidence_score": 0.95,
+          "transformation_logic": "trim(asset_no)",
+          "reasoning": "Semantic match. Primary key 'asset_no' maps to 'c_asset_id'. Both are unique asset identifiers."
+        },
+        {
+          "source_field": "asset_name",
+          "target_field": "asset_name",
+          "confidence_score": 1.0,
+          "transformation_logic": "direct",
+          "reasoning": "Exact match. Asset display name field."
+        },
+        {
+          "source_field": "loc_code",
+          "target_field": "b_location_id",
+          "confidence_score": 0.92,
+          "transformation_logic": "trim(loc_code)",
+          "reasoning": "Semantic match. 'loc_code' (FK) maps to 'b_location_id'. Both reference location. 20% null in source matches optional in target."
+        },
+        {
+          "source_field": "asset_type",
+          "target_field": "asset_type",
+          "confidence_score": 1.0,
+          "transformation_logic": "direct",
+          "reasoning": "Exact match. Category of asset field."
+        },
+        {
+          "source_field": "status",
+          "target_field": "status",
+          "confidence_score": 1.0,
+          "transformation_logic": "coalesce(status, 'Unknown')",
+          "reasoning": "Exact match. Operational status field. Handle 10% nulls with default value for required target field."
+        },
+        {
+          "source_field": "purchase_date",
+          "target_field": "purchase_date",
+          "confidence_score": 1.0,
+          "transformation_logic": "cast(purchase_date as date)",
+          "reasoning": "Exact match. Date of purchase. Source is string, target is date type - requires casting."
+        },
+        {
+          "source_field": "cost",
+          "target_field": "cost",
+          "confidence_score": 1.0,
+          "transformation_logic": "cast(cost as decimal)",
+          "reasoning": "Exact match. Purchase cost. Source is int64, target is decimal - requires casting."
+        }
+      ],
+      "unmapped_source_fields": [],
+      "unmapped_required_target_fields": []
+    },
+    {
+      "source_entity": "WorkOrders",
+      "target_entity": "WorkOrder",
+      "field_mappings": [
+        {
+          "source_field": "wo_id",
+          "target_field": "wo_id",
+          "confidence_score": 1.0,
+          "transformation_logic": "direct",
+          "reasoning": "Exact match. Primary key to primary key. Work order identifier."
+        },
+        {
+          "source_field": "equip_id",
+          "target_field": "asset_id",
+          "confidence_score": 0.92,
+          "transformation_logic": "trim(equip_id)",
+          "reasoning": "Semantic match. 'equip_id' (equipment ID) maps to 'asset_id'. Equipment is a type of asset."
+        },
+        {
+          "source_field": "technician_ref",
+          "target_field": "assigned_user",
+          "confidence_score": 0.9,
+          "transformation_logic": "trim(technician_ref)",
+          "reasoning": "Semantic match. 'technician_ref' (FK to Users) maps to 'assigned_user'. Technician is the assigned user. 10% null in source matches optional in target."
+        },
+        {
+          "source_field": "status",
+          "target_field": "status",
+          "confidence_score": 1.0,
+          "transformation_logic": "direct",
+          "reasoning": "Exact match. Work order status field."
+        },
+        {
+          "source_field": "priority",
+          "target_field": "priority",
+          "confidence_score": 1.0,
+          "transformation_logic": "direct",
+          "reasoning": "Exact match. Priority level field."
+        },
+        {
+          "source_field": "created_date",
+          "target_field": "created_date",
+          "confidence_score": 1.0,
+          "transformation_logic": "cast(created_date as date)",
+          "reasoning": "Exact match. Creation date. Source is string, target is date type - requires casting."
+        },
+        {
+          "source_field": "closed_date",
+          "target_field": "closed_date",
+          "confidence_score": 1.0,
+          "transformation_logic": "cast(closed_date as date)",
+          "reasoning": "Exact match. Closure date. Source is string, target is date type - requires casting. 60% null in source matches optional in target."
+        },
+        {
+          "source_field": "description",
+          "target_field": "description",
+          "confidence_score": 1.0,
+          "transformation_logic": "direct",
+          "reasoning": "Exact match. Work description field."
+        }
+      ],
+      "unmapped_source_fields": [],
+      "unmapped_required_target_fields": []
+    }
+  ],
+  "user_mapping_count": 0,
+  "ai_mapping_count": 27,
+  "_meta": {
+    "saved_at": "2026-06-04T09:42:35.309078",
+    "filename": "mapping_document.json"
+  }
+}

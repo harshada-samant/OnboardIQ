@@ -1,0 +1,92 @@
+{
+  "created_at": "2026-06-04T09:41:53.851801",
+  "total_logical_tables": 4,
+  "total_source_files": 7,
+  "tables": [
+    {
+      "logical_table": "Assets",
+      "schema_fingerprint": "asset_name|asset_no|asset_type|cost|loc_code|purchase_date|status",
+      "phase1_checkpoint": "phase1_Assets.json",
+      "representative_file": "assets.csv",
+      "has_duplicates": true,
+      "source_files": [
+        {
+          "file_name": "assets.csv",
+          "source_type": "csv",
+          "row_count": 10,
+          "has_data": true,
+          "dialect": null
+        },
+        {
+          "file_name": "assets__from__assets_mysql.sql",
+          "source_type": "sql_ddl",
+          "row_count": null,
+          "has_data": false,
+          "dialect": "MySQL"
+        },
+        {
+          "file_name": "assets__from__assets_postgres.sql",
+          "source_type": "sql_ddl",
+          "row_count": null,
+          "has_data": false,
+          "dialect": "MySQL"
+        }
+      ]
+    },
+    {
+      "logical_table": "Locations",
+      "schema_fingerprint": "building|floor|loc_name|location_key|parent_ref|site",
+      "phase1_checkpoint": "phase1_Locations.json",
+      "representative_file": "locations.csv",
+      "has_duplicates": false,
+      "source_files": [
+        {
+          "file_name": "locations.csv",
+          "source_type": "csv",
+          "row_count": 4,
+          "has_data": true,
+          "dialect": null
+        }
+      ]
+    },
+    {
+      "logical_table": "Users",
+      "schema_fingerprint": "active|department|email|name|role|user_id",
+      "phase1_checkpoint": "phase1_Users.json",
+      "representative_file": "users.csv",
+      "has_duplicates": false,
+      "source_files": [
+        {
+          "file_name": "users.csv",
+          "source_type": "csv",
+          "row_count": 5,
+          "has_data": true,
+          "dialect": null
+        }
+      ]
+    },
+    {
+      "logical_table": "WorkOrders",
+      "schema_fingerprint": "closed_date|created_date|description|equip_id|priority|status|technician_ref|wo_id",
+      "phase1_checkpoint": "phase1_WorkOrders.json",
+      "representative_file": "work_orders.csv",
+      "has_duplicates": true,
+      "source_files": [
+        {
+          "file_name": "work_orders.csv",
+          "source_type": "csv",
+          "row_count": 10,
+          "has_data": true,
+          "dialect": null
+        },
+        {
+          "file_name": "workorders01.csv",
+          "source_type": "csv",
+          "row_count": 10,
+          "has_data": true,
+          "dialect": null
+        }
+      ]
+    }
+  ]
+}

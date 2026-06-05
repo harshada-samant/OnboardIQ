@@ -1,0 +1,336 @@
+{
+  "entities": [
+    {
+      "entity_name": "Users",
+      "source_file": "Users",
+      "row_count": 5,
+      "primary_key": "user_id",
+      "fields": [
+        {
+          "name": "user_id",
+          "dtype": "str",
+          "role": "primary_key",
+          "null_pct": 0.0,
+          "unique_count": 5
+        },
+        {
+          "name": "name",
+          "dtype": "str",
+          "role": "attribute",
+          "null_pct": 0.0,
+          "unique_count": 5
+        },
+        {
+          "name": "role",
+          "dtype": "str",
+          "role": "attribute",
+          "null_pct": 0.0,
+          "unique_count": 4
+        },
+        {
+          "name": "email",
+          "dtype": "str",
+          "role": "attribute",
+          "null_pct": 20.0,
+          "unique_count": 4
+        },
+        {
+          "name": "department",
+          "dtype": "str",
+          "role": "attribute",
+          "null_pct": 0.0,
+          "unique_count": 4
+        },
+        {
+          "name": "active",
+          "dtype": "bool",
+          "role": "attribute",
+          "null_pct": 0.0,
+          "unique_count": 2
+        }
+      ],
+      "fk_candidates": [],
+      "data_quality_notes": [
+        "email has 20% nulls (1 missing value)",
+        "email has only 4 unique values for 5 rows, indicating potential duplicate or missing data"
+      ],
+      "relationships": []
+    },
+    {
+      "entity_name": "Locations",
+      "source_file": "Locations.csv",
+      "row_count": 4,
+      "primary_key": "location_key",
+      "fields": [
+        {
+          "name": "location_key",
+          "dtype": "str",
+          "role": "primary_key",
+          "null_pct": 0.0,
+          "unique_count": 4
+        },
+        {
+          "name": "loc_name",
+          "dtype": "str",
+          "role": "attribute",
+          "null_pct": 0.0,
+          "unique_count": 4
+        },
+        {
+          "name": "parent_ref",
+          "dtype": "str",
+          "role": "foreign_key",
+          "null_pct": 0.0,
+          "unique_count": 2,
+          "fk_pattern": "SITExx"
+        },
+        {
+          "name": "site",
+          "dtype": "str",
+          "role": "attribute",
+          "null_pct": 0.0,
+          "unique_count": 2
+        },
+        {
+          "name": "building",
+          "dtype": "str",
+          "role": "attribute",
+          "null_pct": 0.0,
+          "unique_count": 3
+        },
+        {
+          "name": "floor",
+          "dtype": "str",
+          "role": "attribute",
+          "null_pct": 0.0,
+          "unique_count": 2
+        }
+      ],
+      "fk_candidates": [
+        {
+          "field": "parent_ref",
+          "pattern": "SITExx",
+          "sample_values": [
+            "SITE01",
+            "SITE02"
+          ],
+          "reasoning": "Values follow a site code pattern with format SITExx, likely references a Sites or parent location table. The field name 'parent_ref' explicitly indicates a hierarchical relationship."
+        }
+      ],
+      "data_quality_notes": [],
+      "relationships": [
+        {
+          "from_field": "parent_ref",
+          "to_entity": "Locations",
+          "to_field": "location_key",
+          "confidence": "HIGH",
+          "reasoning": "Self-referential hierarchy: parent_ref values (SITE01, SITE02) match the pattern of location_key primary key, and field name 'parent_ref' explicitly indicates parent-child relationship within Locations"
+        }
+      ]
+    },
+    {
+      "entity_name": "Assets",
+      "source_file": "Assets.csv",
+      "row_count": 10,
+      "primary_key": "asset_no",
+      "fields": [
+        {
+          "name": "asset_no",
+          "dtype": "str",
+          "role": "primary_key",
+          "null_pct": 0.0,
+          "unique_count": 10
+        },
+        {
+          "name": "asset_name",
+          "dtype": "str",
+          "role": "attribute",
+          "null_pct": 0.0,
+          "unique_count": 10
+        },
+        {
+          "name": "loc_code",
+          "dtype": "str",
+          "role": "foreign_key",
+          "null_pct": 20.0,
+          "unique_count": 5,
+          "fk_pattern": "LOCxx"
+        },
+        {
+          "name": "asset_type",
+          "dtype": "str",
+          "role": "attribute",
+          "null_pct": 0.0,
+          "unique_count": 6
+        },
+        {
+          "name": "status",
+          "dtype": "str",
+          "role": "attribute",
+          "null_pct": 10.0,
+          "unique_count": 3
+        },
+        {
+          "name": "purchase_date",
+          "dtype": "str",
+          "role": "attribute",
+          "null_pct": 0.0,
+          "unique_count": 10
+        },
+        {
+          "name": "cost",
+          "dtype": "int64",
+          "role": "attribute",
+          "null_pct": 0.0,
+          "unique_count": 10
+        }
+      ],
+      "fk_candidates": [
+        {
+          "field": "loc_code",
+          "pattern": "LOCxx",
+          "sample_values": [
+            "LOC01",
+            "LOC02",
+            "LOC03"
+          ],
+          "reasoning": "Values follow a location code pattern (LOC + digits), likely references a Locations table"
+        }
+      ],
+      "data_quality_notes": [
+        "loc_code has 20% nulls - some assets may not have assigned locations",
+        "status has 10% nulls"
+      ],
+      "relationships": [
+        {
+          "from_field": "loc_code",
+          "to_entity": "Locations",
+          "to_field": "location_key",
+          "confidence": "HIGH",
+          "reasoning": "Assets.loc_code pattern LOCxx matches Locations.location_key primary key pattern, establishing asset-to-location relationship"
+        }
+      ]
+    },
+    {
+      "entity_name": "WorkOrders",
+      "source_file": "WorkOrders",
+      "row_count": 10,
+      "primary_key": "wo_id",
+      "fields": [
+        {
+          "name": "wo_id",
+          "dtype": "str",
+          "role": "primary_key",
+          "null_pct": 0.0,
+          "unique_count": 10
+        },
+        {
+          "name": "equip_id",
+          "dtype": "str",
+          "role": "foreign_key",
+          "null_pct": 0.0,
+          "unique_count": 7,
+          "fk_pattern": "A00x"
+        },
+        {
+          "name": "technician_ref",
+          "dtype": "str",
+          "role": "foreign_key",
+          "null_pct": 10.0,
+          "unique_count": 3,
+          "fk_pattern": "U00x"
+        },
+        {
+          "name": "status",
+          "dtype": "str",
+          "role": "attribute",
+          "null_pct": 0.0,
+          "unique_count": 3
+        },
+        {
+          "name": "priority",
+          "dtype": "str",
+          "role": "attribute",
+          "null_pct": 0.0,
+          "unique_count": 3
+        },
+        {
+          "name": "created_date",
+          "dtype": "str",
+          "role": "attribute",
+          "null_pct": 0.0,
+          "unique_count": 10
+        },
+        {
+          "name": "closed_date",
+          "dtype": "str",
+          "role": "attribute",
+          "null_pct": 60.0,
+          "unique_count": 4
+        },
+        {
+          "name": "description",
+          "dtype": "str",
+          "role": "attribute",
+          "null_pct": 0.0,
+          "unique_count": 10
+        }
+      ],
+      "fk_candidates": [
+        {
+          "field": "equip_id",
+          "pattern": "A00x",
+          "sample_values": [
+            "A001",
+            "A002",
+            "A003",
+            "A999"
+          ],
+          "reasoning": "Equipment identifier with pattern A00x, likely references an Equipment or Assets table. Note: A999 may be a placeholder for missing/unknown equipment"
+        },
+        {
+          "field": "technician_ref",
+          "pattern": "U00x",
+          "sample_values": [
+            "U001",
+            "U002",
+            "U003"
+          ],
+          "reasoning": "User/technician identifier with pattern U00x, likely references a Users or Technicians table"
+        }
+      ],
+      "data_quality_notes": [
+        "closed_date has 60% nulls (expected for open work orders)",
+        "technician_ref has 10% nulls (unassigned work orders)"
+      ],
+      "relationships": [
+        {
+          "from_field": "equip_id",
+          "to_entity": "Assets",
+          "to_field": "asset_no",
+          "confidence": "HIGH",
+          "reasoning": "WorkOrders.equip_id pattern A00x matches Assets.asset_no primary key pattern, linking work orders to assets/equipment"
+        },
+        {
+          "from_field": "technician_ref",
+          "to_entity": "Users",
+          "to_field": "user_id",
+          "confidence": "HIGH",
+          "reasoning": "WorkOrders.technician_ref pattern U00x matches Users.user_id primary key pattern, linking work orders to technician users"
+        }
+      ]
+    }
+  ],
+  "potential_duplicate_entities": [],
+  "summary": {
+    "total_entities": 4,
+    "total_fields": 27,
+    "relationships_detected": 4,
+    "duplicate_entity_pairs": 0,
+    "failed_tables": []
+  },
+  "_meta": {
+    "saved_at": "2026-06-04T09:42:11.843552",
+    "filename": "entity_catalog.json"
+  }
+}
