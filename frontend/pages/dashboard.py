@@ -10,7 +10,14 @@ from nicegui import app, ui
 from frontend.logo import LOGO_32
 
 # Backend service integrations
-from backend.pipeline_service import get_user_source_files, start_pipeline, get_execution_status, get_execution_logs
+from backend.pipeline_service import (
+    get_user_source_files,
+    start_pipeline,
+    get_execution_status,
+    get_execution_logs,
+    get_chat_history,
+    send_chat_message
+)
 from backend.schema_service import get_schema_options, get_user_schema_selection, update_user_schema_selection
 from backend.database import get_username_by_id
 import config
@@ -429,11 +436,86 @@ def dashboard_page():
         # RIGHT Panel: Chat Assistant
         with ui.column().classes('col-3').style('min-width: 280px; height: 100%;'):
             with ui.card().classes('q-pa-lg bg-white w-full').style(
-                'border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); height: 100%; overflow: hidden;'
+                'border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); height: 100%; display: flex; flex-direction: column; overflow: hidden;'
             ):
                 ui.label('Chat Assistant') \
-                  .classes('text-h6 text-weight-bold q-mb-md') \
+                  .classes('text-h6 text-weight-bold q-my-none') \
                   .style('color: #0f172a;')
-                ui.label('The persistent AI assistant and pipeline command logs will appear here.') \
-                  .classes('text-body2') \
+                ui.label('AI-driven onboarding guidance.') \
+                  .classes('text-caption q-mb-sm') \
                   .style('color: #64748b;')
+                
+                ui.separator().classes('q-mb-md')
+
+                # Scrollable message area
+                chat_window = ui.column().classes('w-full col-grow custom-scroll p-1').style('overflow-y: auto; flex: 1 1 0%; min-height: 0;')
+
+                def add_message(sender: str, text: str):
+                    is_user = sender.lower() == 'user'
+                    align_class = 'items-end' if is_user else 'items-start'
+                    bg_style = (
+                        'background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; '
+                        'border-radius: 16px 16px 4px 16px;'
+                        if is_user else
+                        'background: #f1f5f9; color: #1e293b; '
+                        'border-radius: 16px 16px 16px 4px; border: 1px solid #e2e8f0;'
+                    )
+                    avatar_url = 'https://cdn-icons-png.flaticon.com/512/149/149071.png' if is_user else 'https://cdn-icons-png.flaticon.com/512/4712/4712010.png'
+                    
+                    with chat_window:
+                        with ui.column().classes(f'w-full {align_class} gap-1 q-mb-sm'):
+                            with ui.row().classes('items-center gap-2 no-wrap'):
+                                if not is_user:
+                                    ui.image(avatar_url).style('width: 20px; height: 20px; border-radius: 50%;')
+                                with ui.column().style(f'{bg_style} padding: 8px 12px; max-width: 85%; box-shadow: 0 1px 3px rgba(0,0,0,0.05);'):
+                                    ui.label(text).classes('text-xs').style('white-space: pre-wrap; font-family: "Inter", sans-serif; line-height: 1.4;')
+                                if is_user:
+                                    ui.image(avatar_url).style('width: 20px; height: 20px; border-radius: 50%;')
+                    
+                    try:
+                        ui.run_javascript(f'const el = document.getElementById("c{chat_window.id}"); if (el) el.scrollTop = el.scrollHeight;')
+                    except Exception:
+                        pass
+
+                async def on_send():
+                    text = chat_input.value
+                    if not text or not text.strip():
+                        return
+                    
+                    user_msg = text.strip()
+                    add_message('User', user_msg)
+                    chat_input.value = ''
+                    
+                    try:
+                        from nicegui import run
+                        # Invoke backend Bedrock chatbot asynchronously
+                        result = await run.io_bound(send_chat_message, user_id, user_msg, state['execution_id'])
+                        reply = result.get("response", "I could not process the message.")
+                    except Exception as ex:
+                        reply = f"Error communicating with assistant: {ex}"
+                        
+                    add_message('Assistant', reply)
+
+                # Input bar and send button row at the bottom
+                with ui.row().classes('w-full items-center gap-2 no-wrap q-mt-md').style('border-top: 1px solid #f1f5f9; padding-top: 12px;'):
+                    chat_input = ui.input(placeholder='Type a message...').classes('col-grow').props('outlined dense')
+                    chat_input.on('keydown.enter', on_send)
+                    
+                    ui.button(on_click=on_send, icon='send') \
+                      .props('unelevated dense') \
+                      .classes('text-white') \
+                      .style('background: #2563eb; border-radius: 6px; width: 40px; height: 40px;')
+
+                # Render persistent chat history on page load
+                try:
+                    chat_history = get_chat_history(user_id)
+                except Exception:
+                    chat_history = []
+
+                if chat_history:
+                    for msg in chat_history:
+                        role = 'User' if msg['role'] == 'user' else 'Assistant'
+                        add_message(role, msg['content'])
+                else:
+                    # Add initial greeting message
+                    add_message('Assistant', "Welcome! I'm your data onboarding assistant. Ask me anything about your schema, file uploads, or pipeline waves.")
