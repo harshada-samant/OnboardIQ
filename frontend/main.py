@@ -14,6 +14,10 @@ sys.path.insert(0, str(root_dir))
 sys.path.insert(0, str(root_dir / "backend"))
 sys.path.insert(0, str(root_dir / "frontend"))
 
+# Load environment variables from .env
+from config import load_and_validate_env
+load_and_validate_env()
+
 from nicegui import ui
 
 # Import middleware to register request handlers

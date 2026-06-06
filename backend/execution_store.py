@@ -5,6 +5,7 @@ Thread-safe in-memory store for tracking active pipeline execution state.
 Includes structured logging and progress updates.
 """
 
+import sys
 import threading
 import copy
 from datetime import datetime
@@ -26,7 +27,9 @@ def start_execution(execution_id: str, user_id: int) -> None:
             "current_step": "Init"
         }
     timestamp = datetime.utcnow().isoformat()
-    print(f"[{timestamp}] [Init] [EXECUTION_START] Started execution tracking for ID: {execution_id}, User ID: {user_id}")
+    msg = f"[{timestamp}] [Init] [EXECUTION_START] Started execution tracking for ID: {execution_id}, User ID: {user_id}\n"
+    sys.__stdout__.write(msg)
+    sys.__stdout__.flush()
 
 def transition_step(execution_id: str, step_name: str, progress: int, message: str) -> None:
     """
@@ -34,8 +37,9 @@ def transition_step(execution_id: str, step_name: str, progress: int, message: s
     All state changes are performed as a single thread-safe lock-guarded action.
     """
     timestamp = datetime.utcnow().isoformat()
-    formatted_console = f"[{timestamp}] [{step_name}] {message}"
-    print(formatted_console)
+    formatted_console = f"[{timestamp}] [{step_name}] {message}\n"
+    sys.__stdout__.write(formatted_console)
+    sys.__stdout__.flush()
 
     with store_lock:
         if execution_id not in execution_store:
@@ -47,7 +51,23 @@ def transition_step(execution_id: str, step_name: str, progress: int, message: s
         record["logs"].append({
             "timestamp": timestamp,
             "message": message,
-            "step": step_name
+            "step": step_name,
+            "is_raw": False
+        })
+
+def append_stdout_line(execution_id: str, message: str) -> None:
+    """
+    Appends a raw stdout print message to the execution store logs.
+    """
+    with store_lock:
+        if execution_id not in execution_store:
+            return
+        record = execution_store[execution_id]
+        record["logs"].append({
+            "timestamp": datetime.utcnow().isoformat(),
+            "message": message,
+            "step": record.get("current_step", "Pipeline"),
+            "is_raw": True
         })
 
 def complete_execution(execution_id: str, status: str, error_message: str = None) -> None:
@@ -66,8 +86,9 @@ def complete_execution(execution_id: str, status: str, error_message: str = None
         step_name = "Failed"
         progress = None  # Leave progress unchanged or keep at current level
 
-    formatted_console = f"[{timestamp}] [{step_name}] {msg}"
-    print(formatted_console)
+    formatted_console = f"[{timestamp}] [{step_name}] {msg}\n"
+    sys.__stdout__.write(formatted_console)
+    sys.__stdout__.flush()
 
     with store_lock:
         if execution_id not in execution_store:
@@ -82,7 +103,8 @@ def complete_execution(execution_id: str, status: str, error_message: str = None
         log_entry = {
             "timestamp": timestamp,
             "message": msg,
-            "step": step_name
+            "step": step_name,
+            "is_raw": False
         }
         if error_message is not None:
             log_entry["error_message"] = error_message

@@ -10,7 +10,7 @@ from nicegui import app, ui
 from frontend.logo import LOGO_32
 
 # Backend service integrations
-from backend.pipeline_service import get_user_source_files
+from backend.pipeline_service import get_user_source_files, start_pipeline, get_execution_status, get_execution_logs
 from backend.schema_service import get_schema_options, get_user_schema_selection, update_user_schema_selection
 from backend.database import get_username_by_id
 import config
@@ -85,6 +85,21 @@ def dashboard_page():
       }
       .custom-scroll::-webkit-scrollbar-thumb:hover {
         background: #94a3b8; /* slate-400 */
+      }
+
+      /* Custom scrollbar for the dark terminal console */
+      .terminal-scroll::-webkit-scrollbar {
+        width: 6px;
+      }
+      .terminal-scroll::-webkit-scrollbar-track {
+        background: #0f172a;
+      }
+      .terminal-scroll::-webkit-scrollbar-thumb {
+        background: #334155; /* slate-700 */
+        border-radius: 3px;
+      }
+      .terminal-scroll::-webkit-scrollbar-thumb:hover {
+        background: #475569; /* slate-600 */
       }
     </style>
     ''')
@@ -238,36 +253,181 @@ def dashboard_page():
         # CENTER Panel: Pipeline Execution
         with ui.column().classes('col').style('height: 100%;'):
             with ui.card().classes('q-pa-lg bg-white w-full').style(
-                'border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); height: 100%; overflow: hidden;'
+                'border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); height: 100%; display: flex; flex-direction: column; overflow: hidden; min-height: 0;'
             ):
-                ui.label('Pipeline Execution') \
-                  .classes('text-h6 text-weight-bold q-mb-md') \
-                  .style('color: #0f172a;')
-                
-                ui.label(f'Welcome back, {username}!') \
-                  .classes('text-subtitle1 text-weight-bold q-mb-xs') \
-                  .style('color: #0f172a;')
-                
-                with ui.column().classes('w-full q-pa-md q-my-md').style(
-                    'border-radius: 12px; border: 1px solid #bfdbfe; background: #eff6ff;'
-                ):
-                    ui.label('User Space Isolation') \
-                      .classes('text-weight-bold text-caption q-mb-xs') \
-                      .style('color: #2563eb;')
-                    ui.label(f'Output path: outputs/users/{username}/') \
-                      .classes('text-weight-medium text-body2') \
-                      .style('color: #1e40af;')
-                    ui.label('All reports, catalogs, and mappings are stored exclusively in your folder.') \
-                      .classes('text-caption') \
-                      .style('color: #3b82f6;')
+                # State variables
+                state = {
+                    'execution_id': None,
+                    'status': 'idle',
+                    'progress': 0.0,
+                    'current_step': 'Not started',
+                    'log_lines': []
+                }
+                rendered_logs_count = 0
 
-                ui.button('Proceed to Pipeline', on_click=lambda: ui.notify('Pipeline interface loading...')) \
-                  .props('no-caps') \
-                  .classes('q-mt-md q-px-lg q-py-sm text-white') \
-                  .style('background: #2563eb; border-radius: 8px; font-weight: 600;')
+                def format_log_to_html(log_entry):
+                    timestamp_raw = log_entry.get('timestamp', '')
+                    step = log_entry.get('step', '')
+                    message = log_entry.get('message', '')
+                    is_raw = log_entry.get('is_raw', False)
+                    
+                    try:
+                        if 'T' in timestamp_raw:
+                            time_part = timestamp_raw.split('T')[1].split('.')[0]
+                        else:
+                            time_part = timestamp_raw
+                    except Exception:
+                        time_part = timestamp_raw
+                        
+                    msg_color = '#e2e8f0' # Slate-200
+                    msg_lower = message.lower()
+                    if 'fail' in msg_lower or 'error' in msg_lower or 'reject' in msg_lower:
+                        msg_color = '#f87171' # Red-400
+                    elif 'success' in msg_lower or 'complete' in msg_lower or 'finished' in msg_lower:
+                        msg_color = '#4ade80' # Green-400
+                    elif 'warning' in msg_lower:
+                        msg_color = '#fbbf24' # Amber-400
+                        
+                    escaped_message = message.replace('<', '&lt;').replace('>', '&gt;')
+                    if is_raw:
+                        return f'<span style="color: {msg_color};">{escaped_message}</span>'
+                    else:
+                        return f'<span style="color: #64748b;">[{time_part}]</span> <span style="color: #60a5fa; font-weight: bold;">[{step}]</span> <span style="color: {msg_color};">{escaped_message}</span>'
+
+                # Polling Callback & Logic
+                def poll_status():
+                    nonlocal rendered_logs_count
+                    exec_id = state['execution_id']
+                    if not exec_id:
+                        polling_timer.deactivate()
+                        return
+                    
+                    try:
+                        # Fetch and update status
+                        status_data = get_execution_status(exec_id)
+                        status = status_data.get('status', 'failed')
+                        progress = status_data.get('progress', 0)
+                        current_step = status_data.get('current_step', 'Unknown')
+                        
+                        state['status'] = status
+                        state['progress'] = progress
+                        state['current_step'] = current_step
+                        
+                        # Update status dashboard header
+                        step_label.set_text(current_step)
+                        progress_bar.set_value(progress / 100.0)
+                        progress_label.set_text(f"{int(progress)}%")
+                        
+                        if status == 'running':
+                            status_badge.set_text('RUNNING')
+                            status_badge.style('background-color: #2563eb;')
+                        elif status == 'completed':
+                            status_badge.set_text('COMPLETED')
+                            status_badge.style('background-color: #16a34a;')
+                        elif status == 'failed':
+                            status_badge.set_text('FAILED')
+                            status_badge.style('background-color: #dc2626;')
+                        
+                        # Fetch and append logs in real-time (no duplicates)
+                        logs = get_execution_logs(exec_id)
+                        if len(logs) > rendered_logs_count:
+                            new_lines = []
+                            for i in range(rendered_logs_count, len(logs)):
+                                new_lines.append(format_log_to_html(logs[i]))
+                            state['log_lines'].extend(new_lines)
+                            
+                            # Update HTML content
+                            log_console.set_content('<br>'.join(state['log_lines']))
+                            rendered_logs_count = len(logs)
+                            
+                            # Auto-scroll to bottom of the console
+                            ui.run_javascript(f'const el = document.getElementById("c{log_console.id}"); if (el) el.scrollTop = el.scrollHeight;')
+                        
+                        # Stop polling if execution hits terminal state
+                        if status in ('completed', 'failed'):
+                            polling_timer.deactivate()
+                            start_button.visible = True
+                            if status == 'completed':
+                                ui.notify('Pipeline completed successfully!', type='positive')
+                            else:
+                                ui.notify(f"Pipeline failed: {status_data.get('error_message', 'Unknown error')}", type='negative')
+                            refresh_outputs() # Refresh Output Files list
+                            
+                    except Exception as ex:
+                        print(f"Error polling pipeline execution: {ex}")
+
+                polling_timer = ui.timer(1.0, poll_status, active=False)
+
+                def on_start_click():
+                    nonlocal rendered_logs_count
+                    try:
+                        # Hide start button
+                        start_button.visible = False
+                        
+                        # Trigger pipeline
+                        exec_id = start_pipeline(user_id)
+                        
+                        # Reset states
+                        state['execution_id'] = exec_id
+                        state['status'] = 'running'
+                        state['progress'] = 0.0
+                        state['current_step'] = 'Initializing...'
+                        state['log_lines'] = [
+                            '<span style="color: #64748b;">[System] Spawning pipeline thread...</span>',
+                            f'<span style="color: #64748b;">[System] Execution ID: {exec_id}</span>'
+                        ]
+                        rendered_logs_count = 0
+                        
+                        # Update UI elements
+                        step_label.set_text('Initializing...')
+                        status_badge.set_text('RUNNING')
+                        status_badge.style('background-color: #2563eb;')
+                        progress_bar.set_value(0.0)
+                        progress_label.set_text('0%')
+                        
+                        # Clear console and set initial lines
+                        log_console.set_content('<br>'.join(state['log_lines']))
+                        
+                        ui.notify('Pipeline started successfully!', type='info')
+                        
+                        # Start polling status
+                        polling_timer.activate()
+                        
+                    except Exception as ex:
+                        start_button.visible = True
+                        ui.notify(f"Failed to start pipeline: {str(ex)}", type='negative')
+
+                # ── Title and Run Button Top Row ──────────────────────────────────
+                with ui.row().classes('w-full items-center justify-between no-wrap q-mb-md'):
+                    ui.label('Pipeline Execution') \
+                      .classes('text-h6 text-weight-bold q-my-none') \
+                      .style('color: #0f172a;')
+                    
+                    start_button = ui.button('START PIPELINE', on_click=on_start_click) \
+                        .props('no-caps icon=play_arrow') \
+                        .classes('text-white') \
+                        .style('background: #2563eb; border-radius: 8px; font-weight: 600; padding: 4px 16px;')
+
+                # ── 1. EXECUTION STATUS DASHBOARD (TOP SECTION) ───────────────────
+                with ui.row().classes('w-full items-center justify-between no-wrap q-mb-xs'):
+                    step_label = ui.label('Idle').classes('text-lg font-bold text-slate-800 truncate')
+                    status_badge = ui.label('IDLE').classes('q-px-sm q-py-xs text-white text-xs font-bold rounded bg-slate-400')
+
+                with ui.row().classes('w-full items-center gap-4 no-wrap q-mb-md'):
+                    progress_bar = ui.linear_progress(value=0.0, show_value=False).classes('col-grow')
+                    progress_label = ui.label('0%').classes('text-xs font-bold text-slate-600')
+
+                # ── 2. TERMINAL-LIKE LOG CONSOLE (MAIN AREA) ──────────────────────
+                log_console = ui.html(
+                    '<span style="color: #64748b;">[OnboardIQ Console v1.0] Ready. Click START PIPELINE to begin.</span>'
+                ).classes('w-full col-grow terminal-scroll p-4').style(
+                    'flex: 1 1 0%; min-height: 250px; overflow-y: scroll; '
+                    'background-color: #0f172a; font-family: "Fira Code", Courier, monospace; font-size: 11px; '
+                    'white-space: pre-wrap; border-radius: 12px; border: 1px solid #1e293b;'
+                )
 
         # RIGHT Panel: Chat Assistant
-        with ui.column().classes('col').style('height: 100%;'):
+        with ui.column().classes('col-3').style('min-width: 280px; height: 100%;'):
             with ui.card().classes('q-pa-lg bg-white w-full').style(
                 'border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); height: 100%; overflow: hidden;'
             ):

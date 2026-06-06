@@ -1,10 +1,5 @@
-"""
-backend/pipeline_executor.py
------------------------------
-User-aware pipeline execution orchestrator.
-Directly executes the sequential agents while updating the execution_store.
-"""
-
+import sys
+import threading
 import uuid
 import json
 from datetime import datetime
@@ -28,8 +23,40 @@ from backend.execution_store import (
     transition_step,
     complete_execution,
     get_execution,
-    is_user_running
+    is_user_running,
+    append_stdout_line
 )
+
+class LogRedirector:
+    """
+    Intercepts sys.stdout write calls and appends complete lines to the execution store logs.
+    """
+    def __init__(self, execution_id, original_stdout):
+        self.execution_id = execution_id
+        self.original = original_stdout
+        self.buffer = []
+        self.lock = threading.Lock()
+
+    def write(self, text):
+        self.original.write(text)
+        with self.lock:
+            for char in text:
+                if char == '\n':
+                    line = ''.join(self.buffer).rstrip('\r')
+                    self.buffer = []
+                    append_stdout_line(self.execution_id, line)
+                else:
+                    self.buffer.append(char)
+
+    def flush(self):
+        self.original.flush()
+        
+    def close(self):
+        with self.lock:
+            if self.buffer:
+                line = ''.join(self.buffer).rstrip('\r')
+                append_stdout_line(self.execution_id, line)
+                self.buffer = []
 
 def export_execution_json(execution_id: str, output_dir: Path, username: str = None) -> None:
     """
@@ -116,6 +143,11 @@ def run_pipeline(user_id: int, execution_id: str = None) -> str:
         start_execution(execution_id, user_id)
         transition_step(execution_id, "Init", 0, f"Initiating pipeline execution {execution_id} for user {username}.")
 
+        # Redirect standard output to capture agent logging in execution logs
+        original_stdout = sys.stdout
+        redirector = LogRedirector(execution_id, original_stdout)
+        sys.stdout = redirector
+
         # 3. Verify config.OUTPUT_DIR matches the user's isolated workspace outputs directory
         expected_output_dir = config.WORKSPACES_DIR / "users" / username / "outputs"
         if Path(config.OUTPUT_DIR).resolve() != expected_output_dir.resolve():
@@ -179,10 +211,16 @@ def run_pipeline(user_id: int, execution_id: str = None) -> str:
                 print(f"Error saving failure snapshot: {snap_err}")
                 
     finally:
+        # Restore original stdout
+        if 'original_stdout' in locals():
+            sys.stdout = original_stdout
+            redirector.close()
+            
         # Export metadata log JSON to active output directory
         try:
             export_execution_json(execution_id, Path(config.OUTPUT_DIR), username)
         except Exception as export_err:
-            print(f"CRITICAL: Failed to write execution results JSON: {export_err}")
+            sys.__stdout__.write(f"CRITICAL: Failed to write execution results JSON: {export_err}\n")
+            sys.__stdout__.flush()
 
     return execution_id
