@@ -1,0 +1,11 @@
+wo_id,equip_id,technician_ref,status,priority,created_date,closed_date,description
+WO001,A001,U001,Closed,High,2024-01-10,2024-01-15,Bearing replacement
+WO002,A002,U002,Open,Medium,2024-02-01,,Routine inspection
+WO003,A003,U001,Open,Low,2024-02-15,,Oil change
+WO004,A001,U003,Closed,High,2024-03-01,2024-03-05,Seal repair
+WO005,A999,U002,Open,High,2024-03-10,,Emergency repair
+WO006,A004,,In Progress,Medium,2024-03-12,,Scheduled maintenance
+WO007,A005,U001,Closed,Low,2024-03-20,2024-03-22,Valve calibration
+WO008,A002,U002,Open,Medium,2024-04-01,,Lubrication
+WO009,A001,U001,Closed,High,2024-04-10,2024-04-12,Impeller replacement
+WO010,A006,U003,Open,High,2024-04-15,,Motor overhaul
