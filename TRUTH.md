@@ -297,7 +297,30 @@ Provides the public orchestrator API for future dashboard/UI integrations:
 
 ---
 
-## 11. Outputs Folder Structure
+## 11. Frontend Layout & NiceGUI Login Design
+
+To achieve the premium look and feel of `sample_login.png` while using pure NiceGUI Python elements, the layout uses custom CSS overrides and structural configurations:
+
+### Full-Screen Two-Panel Split Layout
+* The main container `.login-container` stretches to occupy the full browser viewport (`width: 100vw; height: 100vh; position: absolute; inset: 0;`).
+* The left panel (onboarding illustration) and right panel (login form) each span exactly `width: 50%` of the screen.
+
+### Layout Reset and Gap Prevention
+* Default margin and padding are stripped from all Quasar and NiceGUI wrapping layout elements (`body > div`, `#q-app`, `.q-layout`, `.q-page-container`, `.q-page`, and `.nicegui-content`) to align the split panels perfectly flush with the browser window boundaries without gaps.
+
+### Form Width Limitation and Centering
+* On wide screens, the input fields and buttons can stretch too far, looking disproportionate. 
+* To prevent this, the form fields in the right panel are wrapped in a container styled with inline sizing (`width: 100%; max-width: 420px; margin: 0 auto; display: flex; flex-direction: column; justify-content: center;`) that keeps the form compact and centered.
+
+### Pure NiceGUI Interactivity and Element Selection
+* **Interactions:** The username and password fields use `ui.input()`, and the Sign In trigger uses `ui.button()`. Value changes and click events sync natively over WebSocket.
+* **Element Wrappers (`ui.element` vs `ui.html` context manager):** Using `ui.html('div')` as a context manager context fails to register inner/children components inside NiceGUI's internal element hierarchical tree. Container elements must always be constructed using standard layout containers like `ui.element('div')` or `ui.card()`.
+* **Input Styling Overrides (`.iq-field`):** Standard NiceGUI input elements are styled using Quasar properties and a custom `.iq-field` class to apply a clean modern input box styling, overriding Quasar's default bottom underline and border behavior.
+* **WebSocket Path Exemption:** The ASGI authentication middleware in `frontend/middleware.py` explicitly exempts `/socket.io` paths from redirection, ensuring that the Socket.IO connection is successfully established immediately upon page load.
+
+---
+
+## 12. Outputs Folder Structure
 
 ```text
 workspaces/users/{username}/outputs/
@@ -317,43 +340,49 @@ workspaces/users/{username}/outputs/
 
 ---
 
-## 12. Implementation Status
+## 13. Implementation Status
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| `tools/file_tools.py` | ✅ Done | read_file, load_dataframe |
-| `tools/stats_tools.py` | ✅ Done | get_column_stats, get_all_column_stats |
-| `tools/output_tools.py` | ✅ Done | save_output, load_output (uses config.OUTPUT_DIR dynamically) |
-| `tools/sql_parser.py` | ✅ Done | sqlglot-based DDL parser, auto dialect detection |
-| `database.py` | ✅ Done | SQLite connection initialization, bcrypt password checking, target schema persistence, username lookups |
-| `schema_manager.py` | ✅ Done | Available schemas listing, path resolution, path traversal checks, Option A configuration recovery |
-| `schema_service.py` | ✅ Done | Options listing, retrieval, no-op updates, validation, and error log orchestration |
-| `agents/payload_builder.py` | ✅ Done | Reads all files, deduplicates schemas, deduplicates logical names, builds file registry |
-| `agents/discovery_agent.py` | ✅ Done | Two-phase, parallel, checkpointing, retry, semantic duplicate-entity detection, Bedrock client integration |
-| `agents/profiling_agent.py` | ✅ Done | Computes null stats, unique value counts, validates PK uniqueness, referential integrity check |
-| `agents/mapping_agent.py` | ✅ Done | AI-generated source-to-target field mapping, merges manual interactive overrides |
-| `agents/specification_agent.py` | ✅ Done | Merges mappings and profiling reports to auto-generate data contracts (.json and .md specs) |
-| `agents/readiness_agent.py` | ✅ Done | Computes aggregate readiness score, categorizes risks, and enriches risk register via Bedrock |
-| `agents/planning_agent.py` | ✅ Done | Sequences entities into Silver waves based on dependency graph, enriches wave details via Bedrock |
-| `agents/conversational_assistant.py` | ✅ Done | Chat backend that answers queries and executes natural language mapping actions/overrides |
-| `pipeline.py` | ✅ Done | Loads .env, validates AWS credentials, lists supported files, runs all agents in sequence (Discovery -> Planning) |
-| `main.py` | ✅ Done | Typer CLI runner for pipeline and interactive chat assistant (`run` and `chat` commands) |
-| `middleware.py` | ✅ Done | ASGI http middleware reconfiguring workspace routes and active schemas on every authenticated request |
-| `pages/login.py` | ✅ Done | NiceGUI user login screen. Stores user session storage keys and configures active workspaces |
-| `pages/dashboard.py` | ✅ Done | NiceGUI welcome dashboard. Displays logged in username and workspace isolation paths |
+| `config.py` | ✅ Done | Centralized configuration, paths, and environment management |
+| `context.py` | ✅ Done | Pipeline context initialization and persistence |
+| `backend/tools/file_tools.py` | ✅ Done | read_file, load_dataframe |
+| `backend/tools/stats_tools.py` | ✅ Done | get_column_stats, get_all_column_stats |
+| `backend/tools/output_tools.py` | ✅ Done | save_output, load_output (uses config.OUTPUT_DIR dynamically) |
+| `backend/tools/sql_parser.py` | ✅ Done | sqlglot-based DDL parser, auto dialect detection |
+| `backend/database.py` | ✅ Done | SQLite connection initialization, bcrypt password checking, target schema persistence, username lookups |
+| `backend/schema_manager.py` | ✅ Done | Available schemas listing, path resolution, path traversal checks, Option A configuration recovery |
+| `backend/schema_service.py` | ✅ Done | Options listing, retrieval, no-op updates, validation, and error log orchestration |
+| `backend/execution_store.py` | ✅ Done | Thread-safe in-memory store for tracking active pipeline execution state |
+| `backend/pipeline_executor.py` | ✅ Done | User-aware pipeline orchestrator executing sequential agents and updating execution status |
+| `backend/pipeline_service.py` | ✅ Done | API layer exposing pipeline status, logging, and uploaded files on NiceGUI's FastAPI app |
+| `backend/agents/payload_builder.py` | ✅ Done | Reads all files, detects duplicate schemas, deduplicates logical names, builds file registry |
+| `backend/agents/discovery_agent.py` | ✅ Done | Two-phase, parallel, checkpointing, retry, semantic duplicate-entity detection, Bedrock client integration |
+| `backend/agents/profiling_agent.py` | ✅ Done | Computes null stats, unique value counts, validates PK uniqueness, referential integrity check |
+| `backend/agents/mapping_agent.py` | ✅ Done | AI-generated source-to-target field mapping, merges manual overrides |
+| `backend/agents/specification_agent.py` | ✅ Done | Merges mappings and profiling reports to auto-generate data contracts (.json and .md specs) |
+| `backend/agents/readiness_agent.py` | ✅ Done | Computes aggregate readiness score, categorizes risks, and enriches risk register via Bedrock |
+| `backend/agents/planning_agent.py` | ✅ Done | Sequences entities into Silver waves based on dependency graph, enriches wave details via Bedrock |
+| `backend/agents/conversational_assistant.py` | ✅ Done | Chat backend that answers queries and executes natural language mapping actions/overrides |
+| `backend/pipeline.py` | ✅ Done | Loads .env, validates AWS credentials, lists supported files, runs all agents in sequence (Discovery -> Planning) |
+| `backend/main.py` | ✅ Done | Typer CLI runner for pipeline and interactive chat assistant (`run` and `chat` commands) |
+| `frontend/main.py` | ✅ Done | Entry point for the NiceGUI web application |
+| `frontend/middleware.py` | ✅ Done | ASGI http middleware reconfiguring workspace routes and active schemas on every authenticated request |
+| `frontend/pages/login.py` | ✅ Done | NiceGUI user login screen. Stores user session storage keys and configures active workspaces |
+| `frontend/pages/dashboard.py` | ✅ Done | NiceGUI welcome dashboard. Displays logged in username and workspace isolation paths |
 
 ---
 
-## 13. Known Gaps (Deferred)
+## 14. Known Gaps (Deferred)
 
 | Gap | Where | Plan |
 |-----|-------|------|
-| `.sql` files with INSERT data ignored | `sql_parser.py` | Parse INSERT statements in later pass |
-| `.xlsx` support | `payload_builder.py` | Add openpyxl reader when needed |
+| `.sql` files with INSERT data ignored | `backend/tools/sql_parser.py` | Parse INSERT statements in later pass |
+| `.xlsx` support | `backend/agents/payload_builder.py` | Add openpyxl reader when needed |
 
 ---
 
-## 12. Key Principles
+## 15. Key Principles
 
 1. **Each agent does one job.** No agent does another agent's work.
 2. **Python for mechanics, LLM for intelligence.** File reading, stats, parsing = Python. Understanding, naming, relating = LLM.
