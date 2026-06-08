@@ -1,0 +1,15 @@
+{
+  "execution_id": "50b93111-a553-4ee3-a4b8-eb6fca4eb828",
+  "user_id": 1,
+  "username": "user1",
+  "status": "failed",
+  "start_time": "2026-06-08T13:25:27.982969",
+  "end_time": "2026-06-08T13:25:27.982969",
+  "input_dir": "D:\\Hackathon\\onboardiq\\data\\sample",
+  "output_dir": "D:\\Hackathon\\onboardiq\\outputs",
+  "target_schema": "D:\\Hackathon\\onboardiq\\schemas\\target_schema.json",
+  "error_message": "User already has an active pipeline execution running.",
+  "log_milestones": [
+    "[2026-06-08T13:25:27.982969] [Failed] Pipeline execution failed. Error: User already has an active pipeline execution running."
+  ]
+}

@@ -1,0 +1,415 @@
+{
+  "entities": [
+    {
+      "entity_name": "Assets",
+      "source_file": "Assets",
+      "row_count": 10,
+      "primary_key": "asset_no",
+      "fields": [
+        {
+          "name": "asset_no",
+          "dtype": "str",
+          "role": "primary_key",
+          "null_pct": 0.0,
+          "unique_count": 10
+        },
+        {
+          "name": "loc_code",
+          "dtype": "str",
+          "role": "foreign_key",
+          "null_pct": 20.0,
+          "unique_count": 5,
+          "fk_pattern": "LOC-xx"
+        },
+        {
+          "name": "asset_name",
+          "dtype": "str",
+          "role": "regular",
+          "null_pct": 0.0,
+          "unique_count": 10
+        },
+        {
+          "name": "asset_type",
+          "dtype": "str",
+          "role": "regular",
+          "null_pct": 0.0,
+          "unique_count": 6
+        },
+        {
+          "name": "status",
+          "dtype": "str",
+          "role": "regular",
+          "null_pct": 10.0,
+          "unique_count": 3
+        },
+        {
+          "name": "purchase_date",
+          "dtype": "str",
+          "role": "regular",
+          "null_pct": 0.0,
+          "unique_count": 10
+        },
+        {
+          "name": "cost",
+          "dtype": "int64",
+          "role": "regular",
+          "null_pct": 0.0,
+          "unique_count": 10
+        }
+      ],
+      "fk_candidates": [
+        {
+          "field": "loc_code",
+          "pattern": "LOC-xx",
+          "sample_values": [
+            "LOC01",
+            "LOC02"
+          ],
+          "reasoning": "Values follow a location code pattern, likely references a Locations table"
+        }
+      ],
+      "data_quality_notes": [
+        "loc_code has 20% nulls",
+        "status has 10% nulls",
+        "loc_code has 2 duplicate values (unique_count < row_count)"
+      ],
+      "relationships": [
+        {
+          "from_field": "loc_code",
+          "to_entity": "Locations",
+          "to_field": "loc_name",
+          "confidence": "MEDIUM",
+          "reasoning": "Assets.loc_code pattern LOC-xx matches Locations.loc_name field"
+        }
+      ]
+    },
+    {
+      "entity_name": "Users",
+      "source_file": "Users",
+      "row_count": 5,
+      "primary_key": "user_id",
+      "fields": [
+        {
+          "name": "user_id",
+          "dtype": "str",
+          "role": "primary_key",
+          "null_pct": 0.0,
+          "unique_count": 5
+        },
+        {
+          "name": "name",
+          "dtype": "str",
+          "role": "regular",
+          "null_pct": 0.0,
+          "unique_count": 5
+        },
+        {
+          "name": "role",
+          "dtype": "str",
+          "role": "regular",
+          "null_pct": 0.0,
+          "unique_count": 4
+        },
+        {
+          "name": "email",
+          "dtype": "str",
+          "role": "regular",
+          "null_pct": 20.0,
+          "unique_count": 4
+        },
+        {
+          "name": "department",
+          "dtype": "str",
+          "role": "regular",
+          "null_pct": 0.0,
+          "unique_count": 4
+        },
+        {
+          "name": "active",
+          "dtype": "bool",
+          "role": "regular",
+          "null_pct": 0.0,
+          "unique_count": 2
+        }
+      ],
+      "fk_candidates": [
+        {
+          "field": "department",
+          "pattern": "Maintenance",
+          "sample_values": [
+            "Maintenance",
+            "Operations"
+          ],
+          "reasoning": "Values follow a department name pattern, likely references a Departments table"
+        },
+        {
+          "field": "role",
+          "pattern": "Technician",
+          "sample_values": [
+            "Technician",
+            "Engineer"
+          ],
+          "reasoning": "Values follow a role name pattern, likely references a Roles table"
+        }
+      ],
+      "data_quality_notes": [
+        "email has 20% nulls",
+        "active has 2 unique values, which is less than the row count"
+      ],
+      "relationships": []
+    },
+    {
+      "entity_name": "Locations",
+      "source_file": "Locations.csv",
+      "row_count": 4,
+      "primary_key": "location_key",
+      "fields": [
+        {
+          "name": "location_key",
+          "dtype": "str",
+          "role": "primary_key",
+          "null_pct": 0.0,
+          "unique_count": 4
+        },
+        {
+          "name": "loc_name",
+          "dtype": "str",
+          "role": "informational",
+          "null_pct": 0.0,
+          "unique_count": 4
+        },
+        {
+          "name": "parent_ref",
+          "dtype": "str",
+          "role": "foreign_key",
+          "null_pct": 0.0,
+          "unique_count": 2,
+          "fk_pattern": "SITE-xx"
+        },
+        {
+          "name": "site",
+          "dtype": "str",
+          "role": "informational",
+          "null_pct": 0.0,
+          "unique_count": 2
+        },
+        {
+          "name": "building",
+          "dtype": "str",
+          "role": "informational",
+          "null_pct": 0.0,
+          "unique_count": 3
+        },
+        {
+          "name": "floor",
+          "dtype": "str",
+          "role": "informational",
+          "null_pct": 0.0,
+          "unique_count": 2
+        }
+      ],
+      "fk_candidates": [
+        {
+          "field": "parent_ref",
+          "pattern": "SITE-xx",
+          "sample_values": [
+            "SITE01",
+            "SITE02"
+          ],
+          "reasoning": "Values follow a site reference pattern, likely references a Sites table"
+        }
+      ],
+      "data_quality_notes": [],
+      "relationships": []
+    },
+    {
+      "entity_name": "WorkOrders",
+      "source_file": "WorkOrders.csv",
+      "row_count": 10,
+      "primary_key": "wo_id",
+      "fields": [
+        {
+          "name": "wo_id",
+          "dtype": "str",
+          "role": "primary_key",
+          "null_pct": 0.0,
+          "unique_count": 10
+        },
+        {
+          "name": "equip_id",
+          "dtype": "str",
+          "role": "foreign_key",
+          "null_pct": 0.0,
+          "unique_count": 7
+        },
+        {
+          "name": "technician_ref",
+          "dtype": "str",
+          "role": "foreign_key",
+          "null_pct": 10.0,
+          "unique_count": 3
+        },
+        {
+          "name": "status",
+          "dtype": "str",
+          "role": "foreign_key",
+          "null_pct": 0.0,
+          "unique_count": 3
+        },
+        {
+          "name": "priority",
+          "dtype": "str",
+          "role": "foreign_key",
+          "null_pct": 0.0,
+          "unique_count": 3
+        },
+        {
+          "name": "created_date",
+          "dtype": "str",
+          "role": "foreign_key",
+          "null_pct": 0.0,
+          "unique_count": 10
+        },
+        {
+          "name": "closed_date",
+          "dtype": "str",
+          "role": "foreign_key",
+          "null_pct": 60.0,
+          "unique_count": 4
+        },
+        {
+          "name": "description",
+          "dtype": "str",
+          "role": "foreign_key",
+          "null_pct": 0.0,
+          "unique_count": 10
+        }
+      ],
+      "fk_candidates": [
+        {
+          "field": "equip_id",
+          "pattern": "A00x",
+          "sample_values": [
+            "A001",
+            "A002",
+            "A003",
+            "A001",
+            "A999"
+          ],
+          "reasoning": "Values follow an equipment ID pattern, likely references an Equipments table"
+        },
+        {
+          "field": "technician_ref",
+          "pattern": "U00x",
+          "sample_values": [
+            "U001",
+            "U002",
+            "U001",
+            "U003",
+            "U002"
+          ],
+          "reasoning": "Values follow a technician reference pattern, likely references a Technicians table"
+        },
+        {
+          "field": "status",
+          "pattern": "Status-xx",
+          "sample_values": [
+            "Closed",
+            "Open",
+            "Open",
+            "Closed",
+            "Open"
+          ],
+          "reasoning": "Values follow a status pattern, likely references a Statuses table"
+        },
+        {
+          "field": "priority",
+          "pattern": "Priority-xx",
+          "sample_values": [
+            "High",
+            "Medium",
+            "Low",
+            "High",
+            "High"
+          ],
+          "reasoning": "Values follow a priority pattern, likely references a Priorities table"
+        },
+        {
+          "field": "created_date",
+          "pattern": "YYYY-MM-DD",
+          "sample_values": [
+            "2024-01-10",
+            "2024-02-01",
+            "2024-02-15",
+            "2024-03-01",
+            "2024-03-10"
+          ],
+          "reasoning": "Values follow a date pattern, likely references a Dates table"
+        },
+        {
+          "field": "closed_date",
+          "pattern": "YYYY-MM-DD",
+          "sample_values": [
+            "2024-01-15",
+            "2024-03-05",
+            "2024-03-22",
+            "2024-04-12"
+          ],
+          "reasoning": "Values follow a date pattern, likely references a Dates table"
+        },
+        {
+          "field": "description",
+          "pattern": "Description-xx",
+          "sample_values": [
+            "Bearing replacement",
+            "Routine inspection",
+            "Oil change",
+            "Seal repair",
+            "Emergency repair"
+          ],
+          "reasoning": "Values follow a description pattern, likely references a Descriptions table"
+        }
+      ],
+      "data_quality_notes": [
+        "closed_date has 60% nulls",
+        "equip_id has 1 duplicate (unique_count < row_count)",
+        "technician_ref has 10% nulls"
+      ],
+      "relationships": [
+        {
+          "from_field": "equip_id",
+          "to_entity": "Assets",
+          "to_field": "asset_no",
+          "confidence": "HIGH",
+          "reasoning": "WorkOrders.equip_id pattern A00x matches Assets.asset_no primary key"
+        },
+        {
+          "from_field": "technician_ref",
+          "to_entity": "Users",
+          "to_field": "user_id",
+          "confidence": "MEDIUM",
+          "reasoning": "technician_ref values U00x follow a user ID pattern. No Users table uploaded but entity likely exists."
+        }
+      ]
+    }
+  ],
+  "potential_duplicate_entities": [
+    {
+      "entity_a": "Assets",
+      "entity_b": "Equipment",
+      "confidence": "MEDIUM",
+      "reasoning": "Strong overlap in identifiers and business attributes; field names differ but semantics are similar"
+    }
+  ],
+  "summary": {
+    "total_entities": 4,
+    "total_fields": 27,
+    "relationships_detected": 3,
+    "duplicate_entity_pairs": 1,
+    "failed_tables": []
+  },
+  "_meta": {
+    "saved_at": "2026-06-08T13:30:14.657727",
+    "filename": "entity_catalog.json"
+  }
+}

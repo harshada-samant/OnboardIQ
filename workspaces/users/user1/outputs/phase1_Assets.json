@@ -1,0 +1,74 @@
+{
+  "entity_name": "Assets",
+  "source_file": "Assets",
+  "row_count": 10,
+  "primary_key": "asset_no",
+  "fields": [
+    {
+      "name": "asset_no",
+      "dtype": "str",
+      "role": "primary_key",
+      "null_pct": 0.0,
+      "unique_count": 10
+    },
+    {
+      "name": "loc_code",
+      "dtype": "str",
+      "role": "foreign_key",
+      "null_pct": 20.0,
+      "unique_count": 5,
+      "fk_pattern": "LOC-xx"
+    },
+    {
+      "name": "asset_name",
+      "dtype": "str",
+      "role": "regular",
+      "null_pct": 0.0,
+      "unique_count": 10
+    },
+    {
+      "name": "asset_type",
+      "dtype": "str",
+      "role": "regular",
+      "null_pct": 0.0,
+      "unique_count": 6
+    },
+    {
+      "name": "status",
+      "dtype": "str",
+      "role": "regular",
+      "null_pct": 10.0,
+      "unique_count": 3
+    },
+    {
+      "name": "purchase_date",
+      "dtype": "str",
+      "role": "regular",
+      "null_pct": 0.0,
+      "unique_count": 10
+    },
+    {
+      "name": "cost",
+      "dtype": "int64",
+      "role": "regular",
+      "null_pct": 0.0,
+      "unique_count": 10
+    }
+  ],
+  "fk_candidates": [
+    {
+      "field": "loc_code",
+      "pattern": "LOC-xx",
+      "sample_values": [
+        "LOC01",
+        "LOC02"
+      ],
+      "reasoning": "Values follow a location code pattern, likely references a Locations table"
+    }
+  ],
+  "data_quality_notes": [
+    "loc_code has 20% nulls",
+    "status has 10% nulls",
+    "loc_code has 2 duplicate values (unique_count < row_count)"
+  ]
+}

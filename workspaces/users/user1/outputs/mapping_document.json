@@ -1,0 +1,233 @@
+{
+  "mappings": [
+    {
+      "source_entity": "Assets",
+      "target_entity": "Asset",
+      "field_mappings": [
+        {
+          "source_field": "asset_no",
+          "target_field": "c_asset_id",
+          "confidence_score": 0.95,
+          "transformation_logic": "uppercase(trim(asset_no))",
+          "reasoning": "Direct semantic match. asset_no is the primary key of source Assets, maps to c_asset_id in target."
+        },
+        {
+          "source_field": "loc_code",
+          "target_field": "b_location_id",
+          "confidence_score": 0.7,
+          "transformation_logic": "direct",
+          "reasoning": "Semantic match. loc_code is a foreign key in source Assets, maps to b_location_id in target."
+        },
+        {
+          "source_field": "asset_name",
+          "target_field": "asset_name",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct semantic match. asset_name is a regular field in source Assets, maps to asset_name in target."
+        },
+        {
+          "source_field": "asset_type",
+          "target_field": "asset_type",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct semantic match. asset_type is a regular field in source Assets, maps to asset_type in target."
+        },
+        {
+          "source_field": "status",
+          "target_field": "status",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct semantic match. status is a regular field in source Assets, maps to status in target."
+        },
+        {
+          "source_field": "purchase_date",
+          "target_field": "purchase_date",
+          "confidence_score": 0.95,
+          "transformation_logic": "cast(date(purchase_date))",
+          "reasoning": "Direct semantic match. purchase_date is a regular field in source Assets, maps to purchase_date in target."
+        },
+        {
+          "source_field": "cost",
+          "target_field": "cost",
+          "confidence_score": 0.95,
+          "transformation_logic": "cast(cost as decimal)",
+          "reasoning": "Direct semantic match. cost is a regular field in source Assets, maps to cost in target."
+        }
+      ],
+      "unmapped_source_fields": [
+        "loc_code"
+      ],
+      "unmapped_required_target_fields": []
+    },
+    {
+      "source_entity": "Users",
+      "target_entity": "User",
+      "field_mappings": [
+        {
+          "source_field": "user_id",
+          "target_field": "user_id",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct semantic match. user_id is the primary key of source Users, maps to user_id in target."
+        },
+        {
+          "source_field": "name",
+          "target_field": "full_name",
+          "confidence_score": 0.7,
+          "transformation_logic": "concat(name, ' ', surname)",
+          "reasoning": "Semantic match. name is a regular field in source Users, maps to full_name in target."
+        },
+        {
+          "source_field": "role",
+          "target_field": "role",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct semantic match. role is a regular field in source Users, maps to role in target."
+        },
+        {
+          "source_field": "email",
+          "target_field": "email",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct semantic match. email is a regular field in source Users, maps to email in target."
+        },
+        {
+          "source_field": "department",
+          "target_field": "department",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct semantic match. department is a regular field in source Users, maps to department in target."
+        },
+        {
+          "source_field": "active",
+          "target_field": "is_active",
+          "confidence_score": 0.7,
+          "transformation_logic": "cast(active as boolean)",
+          "reasoning": "Semantic match. active is a regular field in source Users, maps to is_active in target."
+        }
+      ],
+      "unmapped_source_fields": [],
+      "unmapped_required_target_fields": []
+    },
+    {
+      "source_entity": "Locations",
+      "target_entity": "Location",
+      "field_mappings": [
+        {
+          "source_field": "location_key",
+          "target_field": "location_id",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct semantic match. location_key is the primary key of source Locations, maps to location_id in target."
+        },
+        {
+          "source_field": "loc_name",
+          "target_field": "location_name",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct semantic match. loc_name is an informational field in source Locations, maps to location_name in target."
+        },
+        {
+          "source_field": "parent_ref",
+          "target_field": "parent_id",
+          "confidence_score": 0.7,
+          "transformation_logic": "direct",
+          "reasoning": "Semantic match. parent_ref is a foreign key in source Locations, maps to parent_id in target."
+        },
+        {
+          "source_field": "site",
+          "target_field": "site",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct semantic match. site is an informational field in source Locations, maps to site in target."
+        },
+        {
+          "source_field": "building",
+          "target_field": "building",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct semantic match. building is an informational field in source Locations, maps to building in target."
+        },
+        {
+          "source_field": "floor",
+          "target_field": "floor",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct semantic match. floor is an informational field in source Locations, maps to floor in target."
+        }
+      ],
+      "unmapped_source_fields": [],
+      "unmapped_required_target_fields": []
+    },
+    {
+      "source_entity": "WorkOrders",
+      "target_entity": "WorkOrder",
+      "field_mappings": [
+        {
+          "source_field": "wo_id",
+          "target_field": "wo_id",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct semantic match. wo_id is the primary key of source WorkOrders, maps to wo_id in target."
+        },
+        {
+          "source_field": "equip_id",
+          "target_field": "asset_id",
+          "confidence_score": 0.7,
+          "transformation_logic": "direct",
+          "reasoning": "Semantic match. equip_id is a foreign key in source WorkOrders, maps to asset_id in target."
+        },
+        {
+          "source_field": "technician_ref",
+          "target_field": "assigned_user",
+          "confidence_score": 0.7,
+          "transformation_logic": "direct",
+          "reasoning": "Semantic match. technician_ref is a foreign key in source WorkOrders, maps to assigned_user in target."
+        },
+        {
+          "source_field": "status",
+          "target_field": "status",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct semantic match. status is a foreign key in source WorkOrders, maps to status in target."
+        },
+        {
+          "source_field": "priority",
+          "target_field": "priority",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct semantic match. priority is a foreign key in source WorkOrders, maps to priority in target."
+        },
+        {
+          "source_field": "created_date",
+          "target_field": "created_date",
+          "confidence_score": 0.95,
+          "transformation_logic": "cast(created_date as date)",
+          "reasoning": "Direct semantic match. created_date is a foreign key in source WorkOrders, maps to created_date in target."
+        },
+        {
+          "source_field": "closed_date",
+          "target_field": "closed_date",
+          "confidence_score": 0.95,
+          "transformation_logic": "cast(closed_date as date)",
+          "reasoning": "Direct semantic match. closed_date is a foreign key in source WorkOrders, maps to closed_date in target."
+        },
+        {
+          "source_field": "description",
+          "target_field": "description",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct semantic match. description is a foreign key in source WorkOrders, maps to description in target."
+        }
+      ],
+      "unmapped_source_fields": [],
+      "unmapped_required_target_fields": []
+    }
+  ],
+  "user_mapping_count": 0,
+  "ai_mapping_count": 27,
+  "_meta": {
+    "saved_at": "2026-06-08T13:31:37.517235",
+    "filename": "mapping_document.json"
+  }
+}

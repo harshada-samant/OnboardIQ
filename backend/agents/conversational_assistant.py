@@ -28,6 +28,7 @@ import os
 import json
 import re
 import boto3
+from pathlib import Path
 from botocore.exceptions import ClientError, NoCredentialsError
 from agents.mapping_agent import (
     add_user_mapping,
@@ -189,10 +190,200 @@ def _extract_mapping_action(reply: str) -> tuple[dict | None, str]:
     return action, clean_reply
 
 
+def is_safe_output_path(path) -> bool:
+    """Verifies that the target path is strictly within the user's output folder."""
+    try:
+        abs_target = Path(path).resolve()
+        abs_output = Path(config.OUTPUT_DIR).resolve()
+        return abs_output in abs_target.parents or abs_target == abs_output
+    except Exception:
+        return False
+
+
+def load_target_schema() -> dict:
+    """Helper to load user target schema from TARGET_SCHEMA_PATH."""
+    schema_path = str(config.TARGET_SCHEMA_PATH)
+    if os.path.exists(schema_path):
+        try:
+            with open(schema_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+
+def is_modification_questionable(action: dict, context: dict) -> list[str]:
+    """
+    Analyzes proposed mapping modifications to check if they are questionable.
+    Questionable criteria:
+      1. Action is 'remove' (destructive).
+      2. Target entity does not exist in target schema.
+      3. Target field does not exist in target entity.
+      4. Type mismatch between source field and target field.
+    Returns a list of reasons if questionable, or an empty list if not.
+    """
+    reasons = []
+    act = action.get("action", "add")
+    
+    if act == "remove":
+        reasons.append("Removing an existing mapping is destructive and may leave target fields unmapped.")
+        return reasons
+        
+    source_entity = action.get("source_entity", "")
+    source_field = action.get("source_field", "")
+    target_entity = action.get("target_entity", "")
+    target_field = action.get("target_field", "")
+    
+    # Load target schema
+    target_schema = load_target_schema()
+    if not target_schema:
+        return reasons
+        
+    # Check target entity
+    if target_entity not in target_schema:
+        reasons.append(f"Target entity '{target_entity}' does not exist in the target schema.")
+        return reasons
+        
+    # Check target field
+    entity_fields = target_schema[target_entity]
+    if target_field not in entity_fields:
+        reasons.append(f"Target field '{target_field}' does not exist in target entity '{target_entity}'.")
+        return reasons
+        
+    # Check type mismatch
+    source_type = None
+    entities = context.get("entity_catalog", {}).get("entities", [])
+    for e in entities:
+        if e.get("entity_name") == source_entity:
+            for f in e.get("fields", []):
+                if f.get("name") == source_field:
+                    source_type = f.get("dtype")
+                    break
+            break
+            
+    target_info = entity_fields[target_field]
+    target_type = target_info.get("type")
+    
+    if source_type and target_type:
+        src_norm = "string" if source_type.lower() in ("str", "string", "text") else source_type.lower()
+        tgt_norm = "string" if target_type.lower() in ("str", "string", "text") else target_type.lower()
+        if src_norm != tgt_norm:
+            reasons.append(f"Type mismatch: source field '{source_field}' has type '{source_type}', but target field '{target_field}' expects type '{target_type}'.")
+            
+    return reasons
+
+
+def check_pending_confirmation(user_input: str, context: dict, verbose: bool = True) -> str | None:
+    """
+    Checks if there is a pending questionable mapping action that needs confirmation.
+    If the user input matches a confirmation (e.g. 'yes'), advances the confirmation state.
+    Returns the response message if handled, or None if the normal LLM flow should run.
+    """
+    pending_path = Path(config.OUTPUT_DIR) / "pending_mapping_action.json"
+    if not pending_path.exists():
+        return None
+        
+    confirm_words = {"yes", "y", "confirm", "sure", "proceed"}
+    cleaned_input = user_input.strip().lower().rstrip('.!')
+    
+    if cleaned_input not in confirm_words:
+        # If user typed something else, they aborted/ignored the confirmation.
+        try:
+            pending_path.unlink()
+        except Exception:
+            pass
+        return None
+        
+    try:
+        with open(pending_path, "r", encoding="utf-8") as f:
+            pending = json.load(f)
+    except Exception:
+        return None
+        
+    confirmations = pending.get("confirmations_received", 0)
+    action = pending.get("action")
+    
+    if not action:
+        try:
+            pending_path.unlink()
+        except Exception:
+            pass
+        return None
+        
+    if confirmations == 1:
+        # Increment to 2
+        pending["confirmations_received"] = 2
+        try:
+            with open(pending_path, "w", encoding="utf-8") as f:
+                json.dump(pending, f, indent=2)
+        except Exception as e:
+            return f"Error updating confirmation: {e}"
+        return "⚠️  [CONFIRMATION 2/2] Please confirm once more (reply 'yes' or 'confirm' again) to apply the mapping."
+        
+    elif confirmations == 2:
+        # Actually execute
+        try:
+            pending_path.unlink()
+        except Exception:
+            pass
+        # Perform action
+        status_msg = _handle_mapping_action(action, context, verbose)
+        return status_msg
+        
+    return None
+
+
+def _extract_and_process_mapping_action(reply: str, context: dict, verbose: bool = True) -> tuple[str, str]:
+    """
+    Extracts mapping action from LLM reply.
+    If questionable, prompts for the first confirmation and saves to pending file.
+    Otherwise, handles it immediately.
+    Returns (clean_reply, status_msg).
+    """
+    action, clean_reply = _extract_mapping_action(reply)
+    if not action:
+        return clean_reply, ""
+        
+    reasons = is_modification_questionable(action, context)
+    if reasons:
+        # Save to pending file
+        pending_path = Path(config.OUTPUT_DIR) / "pending_mapping_action.json"
+        os.makedirs(config.OUTPUT_DIR, exist_ok=True)
+        pending_data = {
+            "action": action,
+            "confirmations_received": 1
+        }
+        try:
+            with open(pending_path, "w", encoding="utf-8") as f:
+                json.dump(pending_data, f, indent=2)
+        except Exception as e:
+            return clean_reply, f"Error saving pending action: {e}"
+            
+        status_msg = "\n\n⚠️  [CONFIRMATION 1/2] The proposed mapping change has the following questionable aspects:\n" + \
+                     "\n".join(f"  - {r}" for r in reasons) + \
+                     "\n\nAre you sure you want to apply this change? Please reply with 'yes' or 'confirm' to proceed."
+        return clean_reply, status_msg
+        
+    # Not questionable, execute immediately
+    status_msg = _handle_mapping_action(action, context, verbose)
+    return clean_reply, status_msg
+
+
 def _handle_mapping_action(action: dict, context: dict, verbose: bool) -> str:
     """Execute the mapping action and return a status message."""
     act = action.get("action", "add")
     schema_keys = {"source_files", "entity_catalog", "file_registry", "quality_report", "mappings", "specification", "readiness", "plan"}
+
+    # Strict path permission checks: only allow modifications inside the user's isolated outputs folder
+    target_paths = [
+        str(config.MIGRATION_SPEC_PATH),
+        os.path.join(config.OUTPUT_DIR, "user_mappings.json"),
+        os.path.join(config.OUTPUT_DIR, "mapping_document.json"),
+        os.path.join(config.OUTPUT_DIR, "context_snapshot.json")
+    ]
+    for p in target_paths:
+        if not is_safe_output_path(p):
+            raise PermissionError(f"Access denied: Modification of path '{p}' outside of user output directory is forbidden.")
 
     if act == "add":
         entry = add_user_mapping(
@@ -345,6 +536,15 @@ def start_chat(context: dict, verbose: bool = True):
             print("[Assistant] Goodbye! Your mappings have been saved.")
             break
 
+        # Check for pending confirmations
+        conf_response = check_pending_confirmation(user_input, context, verbose=verbose)
+        if conf_response is not None:
+            history.append({"role": "user", "content": user_input})
+            history.append({"role": "assistant", "content": conf_response})
+            print(_to_ascii(f"\nAssistant: {conf_response}"))
+            print()
+            continue
+
         # Shortcut: show current mappings
         if user_input.lower() in {"show mappings", "list mappings", "mappings"}:
             user_maps = get_user_mappings()
@@ -412,12 +612,14 @@ def start_chat(context: dict, verbose: bool = True):
             reply = f"[Error calling {config.get_provider_name()}: {e}]"
 
         # Parse and execute any mapping action embedded in reply
-        action, clean_reply = _extract_mapping_action(reply)
         status_msg = ""
-        if action:
-            status_msg = _handle_mapping_action(action, context, verbose)
-            # Refresh context summary after mapping change
-            context_summary = _build_context_summary(context)
+        try:
+            clean_reply, status_msg = _extract_and_process_mapping_action(reply, context, verbose)
+        except Exception as mapping_err:
+            clean_reply, status_msg = reply, f"\n⚠️ Failed to execute mapping action: {mapping_err}"
+            
+        # Refresh context summary after mapping change
+        context_summary = _build_context_summary(context)
 
         # Add assistant reply to history
         history.append({"role": "assistant", "content": clean_reply})

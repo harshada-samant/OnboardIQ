@@ -7,7 +7,7 @@ from pathlib import Path
 import config
 from backend.database import get_username_by_id
 from pipeline import list_files
-from context import fresh_context, save_snapshot
+from context import fresh_context, save_snapshot, load_snapshot
 
 # Import agent runner functions directly
 from agents.discovery_agent import run_discovery_agent
@@ -98,10 +98,10 @@ def export_execution_json(execution_id: str, output_dir: Path, username: str = N
     print(f"Exported execution JSON to: {export_file}")
 
 
-def run_pipeline(user_id: int, execution_id: str = None) -> str:
+def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None) -> str:
     """
     Executes the sequential agents onboarding pipeline for the specified user ID.
-    Directly triggers the agent contract functions step-by-step.
+    Directly triggers the agent contract functions step-by-step or a single step.
     Ensures a single active run per user using a concurrency lock.
     """
     if execution_id is None:
@@ -162,41 +162,80 @@ def run_pipeline(user_id: int, execution_id: str = None) -> str:
         if not input_files:
             raise ValueError(f"No supported files found in user uploads directory: {config.INPUT_DIR}")
 
-        transition_step(execution_id, "Init", 5, f"Verified active configurations. Found {len(input_files)} file(s) in input directory.")
+        steps_map = {
+            "Discovery": {"progress": 10, "label": "Starting Discovery Agent..."},
+            "Profiling": {"progress": 30, "label": "Starting Profiling Agent..."},
+            "Mapping": {"progress": 50, "label": "Starting Mapping Agent..."},
+            "Specification": {"progress": 70, "label": "Starting Specification Agent..."},
+            "Readiness": {"progress": 85, "label": "Starting Readiness Agent..."},
+            "Planning": {"progress": 95, "label": "Starting Planning Agent..."}
+        }
 
-        # Formally initialize pipeline context
-        ctx = fresh_context(input_files)
+        # Initialize or load context snapshot
+        if target_step is None or target_step == "Discovery":
+            transition_step(execution_id, "Init", 5, f"Verified active configurations. Found {len(input_files)} file(s) in input directory.")
+            ctx = fresh_context(input_files)
+        else:
+            ctx = load_snapshot()
+            if not ctx:
+                raise ValueError("Context snapshot missing. Please run Discovery Agent first to initialize the pipeline.")
+            # Ensure fresh uploads list is mapped
+            ctx["source_files"] = input_files
 
-        # 6. Execute Agents Sequentially
-        # Discovery Step
-        transition_step(execution_id, "Discovery", 10, "Starting Discovery Agent...")
-        run_discovery_agent(input_files, ctx, verbose=True)
-        save_snapshot(ctx)
+        # 6. Execute Agents
+        if target_step is None:
+            # ORIGINAL FLOW: Run all steps sequentially
+            # Discovery Step
+            transition_step(execution_id, "Discovery", 10, "Starting Discovery Agent...")
+            run_discovery_agent(input_files, ctx, verbose=True)
+            save_snapshot(ctx)
 
-        # Profiling Step
-        transition_step(execution_id, "Profiling", 30, "Starting Profiling Agent...")
-        run_profiling_agent(ctx, verbose=True)
-        save_snapshot(ctx)
+            # Profiling Step
+            transition_step(execution_id, "Profiling", 30, "Starting Profiling Agent...")
+            run_profiling_agent(ctx, verbose=True)
+            save_snapshot(ctx)
 
-        # Mapping Step
-        transition_step(execution_id, "Mapping", 50, "Starting Mapping Agent...")
-        run_mapping_agent(ctx, verbose=True)
-        save_snapshot(ctx)
+            # Mapping Step
+            transition_step(execution_id, "Mapping", 50, "Starting Mapping Agent...")
+            run_mapping_agent(ctx, verbose=True)
+            save_snapshot(ctx)
 
-        # Specification Step
-        transition_step(execution_id, "Specification", 70, "Starting Specification Agent...")
-        run_specification_agent(ctx, verbose=True)
-        save_snapshot(ctx)
+            # Specification Step
+            transition_step(execution_id, "Specification", 70, "Starting Specification Agent...")
+            run_specification_agent(ctx, verbose=True)
+            save_snapshot(ctx)
 
-        # Readiness Step
-        transition_step(execution_id, "Readiness", 85, "Starting Readiness Agent...")
-        run_readiness_agent(ctx, verbose=True)
-        save_snapshot(ctx)
+            # Readiness Step
+            transition_step(execution_id, "Readiness", 85, "Starting Readiness Agent...")
+            run_readiness_agent(ctx, verbose=True)
+            save_snapshot(ctx)
 
-        # Planning Step
-        transition_step(execution_id, "Planning", 95, "Starting Planning Agent...")
-        run_planning_agent(ctx, verbose=True)
-        save_snapshot(ctx)
+            # Planning Step
+            transition_step(execution_id, "Planning", 95, "Starting Planning Agent...")
+            run_planning_agent(ctx, verbose=True)
+            save_snapshot(ctx)
+        else:
+            # TARGET STEP FLOW: Run only the specific step
+            if target_step not in steps_map:
+                raise ValueError(f"Unknown target step: {target_step}")
+            
+            step_info = steps_map[target_step]
+            transition_step(execution_id, target_step, step_info["progress"], step_info["label"])
+            
+            if target_step == "Discovery":
+                run_discovery_agent(input_files, ctx, verbose=True)
+            elif target_step == "Profiling":
+                run_profiling_agent(ctx, verbose=True)
+            elif target_step == "Mapping":
+                run_mapping_agent(ctx, verbose=True)
+            elif target_step == "Specification":
+                run_specification_agent(ctx, verbose=True)
+            elif target_step == "Readiness":
+                run_readiness_agent(ctx, verbose=True)
+            elif target_step == "Planning":
+                run_planning_agent(ctx, verbose=True)
+                
+            save_snapshot(ctx)
 
         # Success completion
         complete_execution(execution_id, "completed")

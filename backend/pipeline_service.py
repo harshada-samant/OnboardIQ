@@ -138,7 +138,9 @@ def send_chat_message(user_id: int, message: str, execution_id: str = None) -> d
         SYSTEM_PROMPT,
         _build_context_summary,
         _extract_mapping_action,
-        _handle_mapping_action
+        _handle_mapping_action,
+        check_pending_confirmation,
+        _extract_and_process_mapping_action
     )
     
     try:
@@ -186,6 +188,18 @@ def send_chat_message(user_id: int, message: str, execution_id: str = None) -> d
     # Ensure ctx["mappings"] is formatted as a dict (conversational_assistant expects {"mappings": [...]})
     if isinstance(ctx.get("mappings"), list):
         ctx["mappings"] = {"mappings": ctx["mappings"]}
+
+    # Check for pending confirmations
+    conf_response = check_pending_confirmation(message, ctx, verbose=False)
+    if conf_response is not None:
+        history.append({"role": "user", "content": message})
+        history.append({"role": "assistant", "content": conf_response})
+        try:
+            with open(history_file, "w", encoding="utf-8") as f:
+                json.dump(history, f, indent=2)
+        except Exception as save_err:
+            print(f"Error persisting chat history: {save_err}")
+        return {"response": conf_response}
 
     # Append new user message to history
     history.append({"role": "user", "content": message})
@@ -237,13 +251,10 @@ def send_chat_message(user_id: int, message: str, execution_id: str = None) -> d
         reply = f"I encountered an error communicating with {config.get_provider_name()}: {e}"
 
     # 6. Parse and execute mapping overrides
-    action, clean_reply = _extract_mapping_action(reply)
-    status_msg = ""
-    if action:
-        try:
-            status_msg = _handle_mapping_action(action, ctx, verbose=False)
-        except Exception as mapping_err:
-            status_msg = f"\n⚠️ Failed to execute mapping action: {mapping_err}"
+    try:
+        clean_reply, status_msg = _extract_and_process_mapping_action(reply, ctx, verbose=False)
+    except Exception as mapping_err:
+        clean_reply, status_msg = reply, f"\n⚠️ Failed to execute mapping action: {mapping_err}"
 
     # Append assistant response to history
     final_reply = clean_reply
@@ -308,3 +319,112 @@ def api_send_chat_message(user_id: int, req: ChatSendRequest):
         return send_chat_message(user_id, req.message, req.execution_id)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# -------------------------------------------------------------
+# 4. STEP-BY-STEP EXECUTION SERVICE FUNCTIONS AND ENDPOINTS
+# -------------------------------------------------------------
+
+def start_pipeline_step(user_id: int, step_name: str) -> str:
+    """
+    Generates a unique execution ID and spawns the pipeline runner for a single step in a background daemon thread.
+    Returns the execution ID immediately.
+    """
+    execution_id = str(uuid.uuid4())
+    thread = threading.Thread(
+        target=run_pipeline,
+        args=(user_id, execution_id, step_name),
+        daemon=True
+    )
+    thread.start()
+    return execution_id
+
+
+def get_pipeline_progress(user_id: int) -> dict:
+    """
+    Inspects outputs of user workspace to check which files exist and determine completed steps.
+    """
+    try:
+        username = get_username_by_id(user_id)
+    except Exception:
+        return {"completed_steps": [], "next_step": "Discovery"}
+
+    outputs_dir = config.WORKSPACES_DIR / "users" / username / "outputs"
+    
+    steps = [
+        ("Discovery", outputs_dir / "entity_catalog.json"),
+        ("Profiling", outputs_dir / "quality_report.json"),
+        ("Mapping", outputs_dir / "mapping_document.json"),
+        ("Specification", outputs_dir / "migration_spec.json"),
+        ("Readiness", outputs_dir / "readiness_report.json"),
+        ("Planning", outputs_dir / "onboarding_plan.json")
+    ]
+    
+    completed_steps = []
+    for step_name, file_path in steps:
+        if file_path.is_file():
+            completed_steps.append(step_name)
+            
+    # Find next step
+    next_step = None
+    all_steps = [s[0] for s in steps]
+    for step_name in all_steps:
+        if step_name not in completed_steps:
+            next_step = step_name
+            break
+            
+    return {
+        "completed_steps": completed_steps,
+        "next_step": next_step
+    }
+
+
+def reset_pipeline(user_id: int) -> bool:
+    """
+    Clears all output files and snapshot to reset pipeline progress back to Step 1.
+    """
+    try:
+        username = get_username_by_id(user_id)
+    except Exception:
+        return False
+        
+    outputs_dir = config.WORKSPACES_DIR / "users" / username / "outputs"
+    if outputs_dir.exists() and outputs_dir.is_dir():
+        import shutil
+        for item in outputs_dir.iterdir():
+            try:
+                if item.is_file():
+                    item.unlink()
+                elif item.is_dir():
+                    shutil.rmtree(item)
+            except Exception as e:
+                print(f"[pipeline_service] Error clearing output item {item.name}: {e}")
+        return True
+    return False
+
+
+@app.post("/api/pipeline/start_step/{user_id}/{step_name}")
+def api_start_pipeline_step(user_id: int, step_name: str):
+    try:
+        exec_id = start_pipeline_step(user_id, step_name)
+        return {"execution_id": exec_id}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/pipeline/progress/{user_id}")
+def api_get_pipeline_progress(user_id: int):
+    try:
+        return get_pipeline_progress(user_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/pipeline/reset/{user_id}")
+def api_reset_pipeline(user_id: int):
+    try:
+        success = reset_pipeline(user_id)
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+

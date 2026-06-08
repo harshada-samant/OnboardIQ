@@ -22,3 +22,17 @@ def save_snapshot(ctx: dict, filename: str = "context_snapshot.json"):
         json.dump(ctx, f, indent=2, default=str)
     print(f"  [saved] {os_output_dir}/{filename}")
 
+
+def load_snapshot(filename: str = "context_snapshot.json") -> dict:
+    """Loads a persisted context dict from the outputs folder."""
+    path = config.OUTPUT_DIR / filename
+    if path.is_file():
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[context] Failed to load snapshot: {e}")
+            return None
+    return None
+
+

@@ -37,6 +37,7 @@ Final Output Package
 
 **Rule:** Each agent reads from `context` dict, does its job, writes output back to `context` and to disk.
 **Rule:** Agents are sequential. No dynamic routing. No agent-to-agent negotiation.
+**Rule:** The pipeline supports either a single sequential sweep, or interactive step-by-step execution using context snapshot serialization (loading from `context_snapshot.json`).
 
 ---
 
@@ -74,7 +75,7 @@ context = {
 
 ## 5. LLM Choice and Fallback Wrapper
 
-**Decision:** AWS Bedrock (`us.anthropic.claude-sonnet-4-5-20250929-v1:0`) is the primary choice, with an automatic fallback to Groq (`llama-3.3-70b-versatile`) if Bedrock is unavailable.
+**Decision:** AWS Bedrock (`us.anthropic.claude-sonnet-4-5-20250929-v1:0`) is the primary choice, with an automatic fallback to Groq if Bedrock is unavailable.
 
 **Provider Auto-Detection (Connectivity Check):**
 * At startup, `check_bedrock_connectivity()` executes a minimal, 1-token call to Bedrock.
@@ -88,7 +89,7 @@ context = {
 
 **Config:**
 * `temperature=0.0` (deterministic completions across both Bedrock and Groq)
-* Model mapping: Bedrock uses `us.anthropic.claude-sonnet-4-5-20250929-v1:0`, Groq maps to `llama-3.3-70b-versatile` (or customized via `GROQ_MODEL`).
+* Model mapping: Bedrock uses `us.anthropic.claude-sonnet-4-5-20250929-v1:0`, Groq uses the model dynamically specified in the `GROQ_MODEL` environment variable (falling back to a default like `llama-3.3-70b-versatile` if not set).
 * Dynamically displays LLM provider name via `config.get_provider_name()` (e.g., logs/messages output "Groq" or "Bedrock" appropriately).
 
 ---
@@ -312,7 +313,33 @@ Provides the public orchestrator API for dashboard/UI integrations:
 
 ---
 
-## 11. Frontend Layout & NiceGUI Login Design
+## 11. Conversational Assistant Security Boundaries & Confirmation Checks
+
+To prevent unintended modifications and destructive changes, the conversational assistant enforces strict directory access boundaries and a multi-step confirmation protocol:
+
+### Output Folder Sentry Check (`is_safe_output_path`)
+* The assistant is strictly forbidden from writing or deleting files outside the active user's isolated outputs folder (`config.OUTPUT_DIR`).
+* All mapping modifications target exactly four files: `migration_spec.json`, `user_mappings.json`, `mapping_document.json`, and `context_snapshot.json`.
+* Every file path is validated via `is_safe_output_path(path)` to verify it resolves inside `config.OUTPUT_DIR`. Any invalid path raises a `PermissionError` and blocks execution.
+
+### Questionable Modification Detection (`is_modification_questionable`)
+Before applying any natural language mapping request, the assistant analyzes if the request is "questionable" based on the following criteria:
+1. **Destructive Actions**: Requesting to delete or `remove` an existing mapping.
+2. **Missing Target Entity**: Mapping to an entity that does not exist in the loaded target schema.
+3. **Missing Target Field**: Mapping to a field name that does not exist within the target entity.
+4. **Data Type Mismatch**: Mapping a source field to a target field with incompatible types (e.g. mapping an `integer` field to a `number`/`decimal` target is fine, but mapping an `integer` to a `string` target is flagged).
+
+### Stateful Twice-Confirmation Protocol
+If an action is flagged as questionable, the assistant suspends the modification and triggers a stateful confirmation flow:
+1. A temporary state file `pending_mapping_action.json` is saved in the user's outputs directory, recording the proposed action and setting `confirmations_received = 1`.
+2. The user is prompted with a detailed explanation of the questionable reasons and asked to confirm.
+3. If the user replies with a confirmation word (`yes`, `y`, `confirm`, `sure`, `proceed`), the state advances to `confirmations_received = 2` and prompts for confirmation once more.
+4. On the second confirmation, the assistant unlinks `pending_mapping_action.json`, executes the action, and updates the output files.
+5. If the user types any other message at any stage of the confirmation, the pending action is cancelled and deleted from disk, reverting to the normal conversational LLM flow.
+
+---
+
+## 12. Frontend Layout & NiceGUI Login Design
 
 To achieve the premium look and feel of `sample_login.png` while using pure NiceGUI Python elements, the layout uses custom CSS overrides and structural configurations:
 
@@ -335,7 +362,7 @@ To achieve the premium look and feel of `sample_login.png` while using pure Nice
 
 ---
 
-## 12. Workspace Folder Structure
+## 13. Workspace Folder Structure
 
 ```text
 workspaces/users/{username}/
@@ -358,7 +385,7 @@ workspaces/users/{username}/
 
 ---
 
-## 13. Implementation Status
+## 14. Implementation Status
 
 | Component | Status | Notes |
 |-----------|--------|-------|
@@ -381,17 +408,19 @@ workspaces/users/{username}/
 | `backend/agents/specification_agent.py` | ✅ Done | Merges mappings and profiling reports to auto-generate data contracts (.json and .md specs) |
 | `backend/agents/readiness_agent.py` | ✅ Done | Computes aggregate readiness score, categorizes risks, and enriches risk register via Bedrock |
 | `backend/agents/planning_agent.py` | ✅ Done | Sequences entities into Silver waves based on dependency graph, enriches wave details via Bedrock |
-| `backend/agents/conversational_assistant.py` | ✅ Done | Chat backend that answers queries and executes natural language mapping actions/overrides |
+| `backend/agents/conversational_assistant.py` | ✅ Done | Chat backend that answers queries, processes mappings, enforces output directory restrictions, and drives questionable-mapping twice confirmations |
 | `backend/pipeline.py` | ✅ Done | Loads .env, validates AWS credentials, lists supported files, runs all agents in sequence (Discovery -> Planning) |
 | `backend/main.py` | ✅ Done | Typer CLI runner for pipeline and interactive chat assistant (`run` and `chat` commands) |
 | `frontend/main.py` | ✅ Done | Entry point for the NiceGUI web application |
 | `frontend/middleware.py` | ✅ Done | ASGI http middleware reconfiguring workspace routes and active schemas on every authenticated request |
 | `frontend/pages/login.py` | ✅ Done | NiceGUI user login screen. Stores user session storage keys and configures active workspaces |
 | `frontend/pages/dashboard.py` | ✅ Done | NiceGUI welcome dashboard. Displays logged in username, workspace isolation paths, target schema uploads, and dynamic logs |
+| `tests/test_step_by_step.py` | ✅ Done | Unit tests for step-by-step pipeline execution, context loading, and reset features |
+| `tests/test_conversational_permissions.py` | ✅ Done | Unit tests for conversational agent permissions and questionable mapping confirmation flows |
 
 ---
 
-## 14. Known Gaps (Deferred)
+## 15. Known Gaps (Deferred)
 
 | Gap | Where | Plan |
 |-----|-------|------|
@@ -400,7 +429,7 @@ workspaces/users/{username}/
 
 ---
 
-## 15. Key Principles
+## 16. Key Principles
 
 1. **Each agent does one job.** No agent does another agent's work.
 2. **Python for mechanics, LLM for intelligence.** File reading, stats, parsing = Python. Understanding, naming, relating = LLM.
