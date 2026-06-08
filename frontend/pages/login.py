@@ -301,6 +301,7 @@ def login_page():
         
         user_record = authenticate_user(user, pwd)
         if user_record:
+            ui.run_javascript("sessionStorage.setItem('session_active', 'true');")
             app.storage.user['authenticated'] = True
             app.storage.user['user_id'] = user_record['id']
             app.storage.user['username'] = user_record['username']

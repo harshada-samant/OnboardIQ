@@ -156,8 +156,9 @@ def test_executor_all():
         
         # Re-set valid schema config
         (temp_schemas_dir / "maximo.json").write_text("{}", encoding="utf-8")
+        (config.SCHEMAS_DIR / "maximo.json").write_text("{}", encoding="utf-8")
         update_user_target_schema(user1_id, "maximo.json")
-        config.TARGET_SCHEMA_PATH = temp_schemas_dir / "maximo.json"
+        config.TARGET_SCHEMA_PATH = config.SCHEMAS_DIR / "maximo.json"
 
         # Clear files in uploads directory
         for f in uploads_dir.iterdir():

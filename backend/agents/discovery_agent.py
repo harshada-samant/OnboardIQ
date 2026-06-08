@@ -94,12 +94,7 @@ def _call_bedrock_with_retry(prompt: str, system: str, label: str = "", max_toke
 
     for attempt in range(1, MAX_RETRIES + 2):   # +2 so range covers 1..MAX_RETRIES+1
         try:
-            client = boto3.client(
-                service_name="bedrock-runtime",
-                region_name=aws_region,
-                aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-                aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-            )
+            client = config.get_bedrock_client()
             
             payload = {
                 "anthropic_version": "bedrock-2023-05-31",

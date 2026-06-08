@@ -63,10 +63,23 @@ async def run_middleware_simulation(user_id: int, username: str):
         def __init__(self):
             self.url = type('URL', (), {'path': '/'})()
             
-    async def mock_call_next(request):
-        return "response"
+    class MockResponse:
+        def __init__(self):
+            self.status_code = 200
 
-    await auth_middleware(MockRequest(), mock_call_next)
+    async def mock_call_next(request):
+        return MockResponse()
+
+    # Preserve current config.SCHEMAS_DIR (temp_schemas_dir)
+    target_schemas_dir = config.SCHEMAS_DIR
+
+    import unittest.mock
+    def mock_set_user_workspace(uname):
+        config.SCHEMAS_DIR = target_schemas_dir
+        config.OUTPUT_DIR = config.WORKSPACES_DIR / "users" / uname / "outputs"
+
+    with unittest.mock.patch("config.set_user_workspace", side_effect=mock_set_user_workspace):
+        await auth_middleware(MockRequest(), mock_call_next)
 
 def test_all():
     print("=== Testing Target Schema Backend Integration ===")

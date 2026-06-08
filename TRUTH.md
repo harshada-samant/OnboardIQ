@@ -72,15 +72,24 @@ context = {
 
 ---
 
-## 5. LLM Choice
+## 5. LLM Choice and Fallback Wrapper
 
-**Decision:** AWS Bedrock (`us.anthropic.claude-sonnet-4-5-20250929-v1:0`) via `boto3` SDK.
+**Decision:** AWS Bedrock (`us.anthropic.claude-sonnet-4-5-20250929-v1:0`) is the primary choice, with an automatic fallback to Groq (`llama-3.3-70b-versatile`) if Bedrock is unavailable.
+
+**Provider Auto-Detection (Connectivity Check):**
+* At startup, `check_bedrock_connectivity()` executes a minimal, 1-token call to Bedrock.
+* If the call fails (e.g., due to access denials or quarantine policies like `AWSCompromisedKeyQuarantineV3`), the global variable `LLM_PROVIDER` switches to `"groq"`.
+* If no AWS credentials are found but `GROQ_API_KEY` is present, it directly initializes to `"groq"`.
+
+**Bedrock-to-Groq Client Wrapper (`BedrockOrGroqClientWrapper`):**
+* Intercepts `invoke_model` payload calls. If running under `"groq"`, it translates Bedrock's Anthropic formatting (system prompt, messages, temperature, max_tokens) to Groq's Chat Completion structure.
+* Sends requests via the `groq` SDK and maps responses back to the expected Bedrock dictionary structure.
+* This allows all agents to write standard Bedrock boto3 calls, while staying fully functional when AWS credentials fail.
 
 **Config:**
-```python
-temperature=0.0       # deterministic — same input = same output
-max_tokens=2048 (default/configurable)
-```
+* `temperature=0.0` (deterministic completions across both Bedrock and Groq)
+* Model mapping: Bedrock uses `us.anthropic.claude-sonnet-4-5-20250929-v1:0`, Groq maps to `llama-3.3-70b-versatile` (or customized via `GROQ_MODEL`).
+* Dynamically displays LLM provider name via `config.get_provider_name()` (e.g., logs/messages output "Groq" or "Bedrock" appropriately).
 
 ---
 
@@ -249,15 +258,15 @@ CREATE TABLE IF NOT EXISTS users (
 ### Password Security & Seeding
 * Passwords are encrypted using `bcrypt` and verified using `bcrypt.checkpw()`. Plaintext credentials are never saved.
 * Seed scripts define two baseline demo accounts:
-  * `user1` / `password123`
-  * `user2` / `password123`
+  * `user1` / `password123` (target schema initialized to `NULL`)
+  * `user2` / `password123` (target schema initialized to `NULL`)
 
 ### Target Schema Persistence Rules
 * The `target_schema` database column stores **only** the filename of the schema (e.g. `maximo.json`), never absolute paths or file contents.
 * Updates via `update_user_target_schema` validate:
   - Non-empty string filename format.
   - Suffix ending with `.json`.
-  - Existence of the schema file inside the `schemas/` directory.
+  - Existence of the schema file inside the active user workspace's `schemas/` directory (`config.SCHEMAS_DIR`).
   - Path traversal checks preventing directory escapes (`Path(schema_name).name == schema_name`).
   - Active existence of the `user_id` in the database.
 
@@ -273,27 +282,33 @@ Every authenticated user is assigned a separate folder:
 workspaces/
 └── users/
     ├── {username}/
-    │   ├── uploads/          <- Input CSV/JSON source files (maps to config.INPUT_DIR)
-    │   ├── outputs/          <- Generated reports and snapshots (maps to config.OUTPUT_DIR)
-    │   └── chat_history.json <- Persistent chat context file
+        ├── uploads/          <- Input CSV/JSON source files (maps to config.INPUT_DIR)
+        ├── outputs/          <- Generated reports and snapshots (maps to config.OUTPUT_DIR)
+        ├── schemas/          <- Isolated user-uploaded target JSON schemas (maps to config.SCHEMAS_DIR)
+        └── chat_history.json <- Persistent chat context file
 ```
 
 ### Request-Time Middleware Reconfiguration
 * NICEGUI session cookies store `authenticated` (bool), `user_id` (int), and `username` (str).
 * **ASGI Middleware** (`frontend/middleware.py`) intercepts every incoming HTTP request. If the session is authenticated, it calls:
-  - `config.set_user_workspace(username)` to map all report path constants to the user's isolated `outputs/` folder.
+  - `config.set_user_workspace(username)` to map all input, output, and schema path constants to the user's isolated workspace.
   - `configure_user_schema(user_id)` to verify and load the correct target schema file.
 * **Concurrency Model & Limitation:** Since NiceGUI processes ASGI request handlers sequentially in its main loop, this request-time reconfiguration dynamically refreshes global variables safely. For high-volume production, separate worker processes or thread-local context variables are required to achieve full thread-safe request isolation.
 
 ### Target Schema Service Layer (`backend/schema_service.py`)
-Provides the public orchestrator API for future dashboard/UI integrations:
-* `get_schema_options() -> list[str]`: Lists alphabetically sorted available schema filenames from `schemas/`.
+Provides the public orchestrator API for dashboard/UI integrations:
+* `get_schema_options() -> list[str]`: Lists alphabetically sorted available schema filenames from the active user's `config.SCHEMAS_DIR`.
 * `get_user_schema_selection(user_id: int) -> str | None`: Retrieves the active user's selection filename.
 * `update_user_schema_selection(user_id: int, schema_name: str) -> bool`: Coordinates updates.
   - Calls database persistence helpers.
   - Calls configuration helpers.
   - **Option A Recovery Logic:** If the schema file is deleted or missing from disk, path configuration fails (returns `False`), logs a warning, and preserves the previously loaded valid target schema path without corrupting the configuration.
   - Logs selections: `[SCHEMA] Updated schema selection for {username}: {schema_name}`.
+
+### Target Schema UI Upload
+* The dashboard page features a target schema upload component allowing users to upload `.json` schema files.
+* Uploaded files are saved directly inside `workspaces/users/{username}/schemas/` and auto-selected for the user's active session.
+* Source file upload is restricted / not permitted from the UI.
 
 ---
 
@@ -320,22 +335,25 @@ To achieve the premium look and feel of `sample_login.png` while using pure Nice
 
 ---
 
-## 12. Outputs Folder Structure
+## 12. Workspace Folder Structure
 
 ```text
-workspaces/users/{username}/outputs/
-  file_registry.json          <- physical file -> logical table map (set by payload_builder)
-  phase1_Assets.json          <- Phase 1 profile per logical table (set by Discovery Agent)
-  phase1_WorkOrders.json
-  phase1_Locations.json
-  ...
-  entity_catalog.json         <- final merged catalog (set by Discovery Agent)
-                                 includes entities, summary, and potential_duplicate_entities
-  quality_report.json         <- set by Profiling Agent
-  mapping_document.json       <- set by Mapping Agent
-  migration_spec.json         <- set by Specification Agent
-  readiness_report.json       <- set by Readiness Agent
-  onboarding_plan.json        <- set by Planning Agent
+workspaces/users/{username}/
+  ├── uploads/                <- Source files uploaded for processing (maps to config.INPUT_DIR)
+  ├── schemas/                <- Target schemas uploaded via UI (maps to config.SCHEMAS_DIR)
+  └── outputs/                <- Active outputs (maps to config.OUTPUT_DIR)
+        ├── file_registry.json          <- physical file -> logical table map (set by payload_builder)
+        ├── phase1_Assets.json          <- Phase 1 profile per logical table (set by Discovery Agent)
+        ├── phase1_WorkOrders.json
+        ├── phase1_Locations.json
+        ├── ...
+        ├── entity_catalog.json         <- final merged catalog (set by Discovery Agent)
+        │                                  includes entities, summary, and potential_duplicate_entities
+        ├── quality_report.json         <- set by Profiling Agent
+        ├── mapping_document.json       <- set by Mapping Agent
+        ├── migration_spec.json         <- set by Specification Agent
+        ├── readiness_report.json       <- set by Readiness Agent
+        └── onboarding_plan.json        <- set by Planning Agent
 ```
 
 ---
@@ -344,7 +362,7 @@ workspaces/users/{username}/outputs/
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| `config.py` | ✅ Done | Centralized configuration, paths, and environment management |
+| `config.py` | ✅ Done | Centralized configuration, paths, environment management, and Bedrock/Groq fallback client wrapper |
 | `context.py` | ✅ Done | Pipeline context initialization and persistence |
 | `backend/tools/file_tools.py` | ✅ Done | read_file, load_dataframe |
 | `backend/tools/stats_tools.py` | ✅ Done | get_column_stats, get_all_column_stats |
@@ -369,7 +387,7 @@ workspaces/users/{username}/outputs/
 | `frontend/main.py` | ✅ Done | Entry point for the NiceGUI web application |
 | `frontend/middleware.py` | ✅ Done | ASGI http middleware reconfiguring workspace routes and active schemas on every authenticated request |
 | `frontend/pages/login.py` | ✅ Done | NiceGUI user login screen. Stores user session storage keys and configures active workspaces |
-| `frontend/pages/dashboard.py` | ✅ Done | NiceGUI welcome dashboard. Displays logged in username and workspace isolation paths |
+| `frontend/pages/dashboard.py` | ✅ Done | NiceGUI welcome dashboard. Displays logged in username, workspace isolation paths, target schema uploads, and dynamic logs |
 
 ---
 

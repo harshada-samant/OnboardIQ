@@ -73,12 +73,7 @@ def _call_bedrock(prompt, system, label="", max_tokens=3000, temperature=0.0):
 
     for attempt in range(1, MAX_RETRIES + 2):
         try:
-            client = boto3.client(
-                service_name="bedrock-runtime",
-                region_name=aws_region,
-                aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-                aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-            )
+            client = config.get_bedrock_client()
             payload = {
                 "anthropic_version": "bedrock-2023-05-31",
                 "max_tokens": max_tokens,
@@ -343,7 +338,7 @@ CURRENT PLAN:
         result = _parse_json(raw)
         revised_plan = result.get("plan", result) if isinstance(result, dict) else result
         if not isinstance(revised_plan, dict):
-            raise ValueError("Bedrock did not return a plan object.")
+            raise ValueError(f"{config.get_provider_name()} did not return a plan object.")
         return _normalize_plan(revised_plan, entities, entity_catalog, quality_report, file_registry)
     except Exception as e:
         if verbose:
@@ -379,7 +374,7 @@ def _review_plan_with_user(plan, context, entities, entity_catalog, quality_repo
             continue
 
         if verbose:
-            print("  Regenerating plan with Bedrock using your feedback...")
+            print(f"  Regenerating plan with {config.get_provider_name()} using your feedback...")
         plan = _regenerate_plan_with_feedback(plan, feedback, entities, entity_catalog, quality_report, file_registry, verbose)
 
 
@@ -757,7 +752,7 @@ def run_planning_agent(context, verbose=True, interactive_review=False):
         # Layer 2 — LLM enrichment
         degraded = False
         if verbose:
-            print(f"\n[Layer 2] Enriching {len(wave_plan)} Silver wave(s) via Bedrock...")
+            print(f"\n[Layer 2] Enriching {len(wave_plan)} Silver wave(s) via {config.get_provider_name()}...")
         try:
             wave_plan = _enrich_waves_with_llm(wave_plan, verbose)
         except Exception as e:

@@ -81,12 +81,7 @@ def _call_bedrock(prompt, system, label="", max_tokens=2048, temperature=0.0):
 
     for attempt in range(1, MAX_RETRIES + 2):
         try:
-            client = boto3.client(
-                service_name="bedrock-runtime",
-                region_name=aws_region,
-                aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-                aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-            )
+            client = config.get_bedrock_client()
             payload = {
                 "anthropic_version": "bedrock-2023-05-31",
                 "max_tokens": max_tokens,
@@ -370,7 +365,7 @@ def _score_relationship_clarity(entity_catalog):
         # exists and the rest of the plan may continue once those failures are resolved.
         risk_items.append(_risk("HIGH", "Discovery",
             f"{len(failed)} table(s) failed during discovery: {[e['entity_name'] for e in failed]}",
-            "Bedrock call failed — entity profiles are incomplete.",
+            f"{config.get_provider_name()} call failed — entity profiles are incomplete.",
             "Delete phase1 checkpoint files for failed tables and re-run Discovery Agent."))
 
     for entity in entities:
@@ -486,7 +481,7 @@ def _generate_markdown(report, output_path):
                     lines.append(f"- {attr.replace('_',' ').title()}: {r[attr]}")
             lines.append("")
     if report.get("degraded_mode"):
-        lines.append("> Warning: LLM risk enrichment skipped (Bedrock unavailable).")
+        lines.append(f"> Warning: LLM risk enrichment skipped ({config.get_provider_name()} unavailable).")
 
     with open(output_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
@@ -582,7 +577,7 @@ def run_readiness_agent(context, verbose=True):
     degraded = False
     if all_risks:
         if verbose:
-            print(f"\n[Layer 2] Enriching {len(all_risks)} risk item(s) via Bedrock...")
+            print(f"\n[Layer 2] Enriching {len(all_risks)} risk item(s) via {config.get_provider_name()}...")
         try:
             all_risks = _enrich_risks_with_llm(all_risks, verbose)
         except Exception as e:

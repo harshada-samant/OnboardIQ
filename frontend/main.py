@@ -34,5 +34,6 @@ ui.run(
     title='OnboardIQ - Data Onboarding',
     port=8080,
     show=False,
-    storage_secret='onboardiq_super_secret_key'
+    storage_secret='onboardiq_super_secret_key',
+    session_middleware_kwargs={'max_age': None}
 )

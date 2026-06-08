@@ -29,12 +29,7 @@ def _call_bedrock(prompt: str, system: str, label: str = "", max_tokens: int = 4
 
     for attempt in range(1, MAX_RETRIES + 2):
         try:
-            client = boto3.client(
-                service_name="bedrock-runtime",
-                region_name=aws_region,
-                aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-                aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-            )
+            client = config.get_bedrock_client()
             
             payload = {
                 "anthropic_version": "bedrock-2023-05-31",
@@ -227,14 +222,14 @@ DATA QUALITY REPORT:
 """
 
     if verbose:
-        print("  Calling Bedrock to generate migration specifications...")
+        print(f"  Calling {config.get_provider_name()} to generate migration specifications...")
 
     try:
         raw = _call_bedrock(prompt, SPEC_SYSTEM, label="SpecificationAgent")
         result = _parse_json(raw)
         entity_spec = result.get("entity_specification", {})
     except Exception as e:
-        print(f"  x Bedrock call failed: {e}")
+        print(f"  x {config.get_provider_name()} call failed: {e}")
         entity_spec = {}
 
     spec_output = {

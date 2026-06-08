@@ -1,12 +1,8 @@
-"""
-backend/workspace.py
---------------------
-Utility module to create and manage user-isolated workspaces.
-"""
-
 import json
 from pathlib import Path
 import config
+
+
 
 def get_user_workspace(username: str) -> dict:
     """
@@ -17,6 +13,7 @@ def get_user_workspace(username: str) -> dict:
         "root": user_dir,
         "uploads": user_dir / "uploads",
         "outputs": user_dir / "outputs",
+        "schemas": user_dir / "schemas",
         "chat_history": user_dir / "chat_history.json"
     }
 
@@ -30,12 +27,15 @@ def create_user_workspace(username: str) -> dict:
     # Create directories
     paths["uploads"].mkdir(parents=True, exist_ok=True)
     paths["outputs"].mkdir(parents=True, exist_ok=True)
+    paths["schemas"].mkdir(parents=True, exist_ok=True)
     
     # Create empty chat_history.json if missing
     chat_file = paths["chat_history"]
     if not chat_file.exists():
         with open(chat_file, "w", encoding="utf-8") as f:
             json.dump([], f, indent=2)
+            
+
             
     return paths
 

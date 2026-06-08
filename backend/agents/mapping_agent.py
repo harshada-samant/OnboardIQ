@@ -41,12 +41,7 @@ def _call_bedrock(prompt: str, system: str, label: str = "", max_tokens: int = 4
 
     for attempt in range(1, MAX_RETRIES + 2):
         try:
-            client = boto3.client(
-                service_name="bedrock-runtime",
-                region_name=aws_region,
-                aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-                aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-            )
+            client = config.get_bedrock_client()
             
             payload = {
                 "anthropic_version": "bedrock-2023-05-31",
@@ -274,14 +269,14 @@ TARGET SCHEMA:
 """
 
     if verbose:
-        print("  Calling Bedrock for auto-mappings...")
+        print(f"  Calling {config.get_provider_name()} for auto-mappings...")
 
     try:
         raw     = _call_bedrock(prompt, MAPPING_SYSTEM, label="MappingAgent")
         result  = _parse_json(raw)
         ai_mappings = result.get("mappings", [])
     except Exception as e:
-        print(f"  x Bedrock call failed: {e}")
+        print(f"  x {config.get_provider_name()} call failed: {e}")
         ai_mappings = []
 
     # ── merge user mappings (user overrides AI) ───────────────────────────────

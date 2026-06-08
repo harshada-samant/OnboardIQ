@@ -214,12 +214,7 @@ def send_chat_message(user_id: int, message: str, execution_id: str = None) -> d
     model_id = os.getenv("AWS_BEDROCK_MODEL", "us.anthropic.claude-sonnet-4-5-20250929-v1:0")
     
     try:
-        client = boto3.client(
-            service_name="bedrock-runtime",
-            region_name=aws_region,
-            aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-            aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-        )
+        client = config.get_bedrock_client()
         
         payload = {
             "anthropic_version": "bedrock-2023-05-31",
@@ -239,7 +234,7 @@ def send_chat_message(user_id: int, message: str, execution_id: str = None) -> d
         body = json.loads(response["body"].read())
         reply = body["content"][0]["text"].strip()
     except Exception as e:
-        reply = f"I encountered an error communicating with Bedrock: {e}"
+        reply = f"I encountered an error communicating with {config.get_provider_name()}: {e}"
 
     # 6. Parse and execute mapping overrides
     action, clean_reply = _extract_mapping_action(reply)

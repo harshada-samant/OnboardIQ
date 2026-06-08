@@ -6,5 +6,29 @@
   {
     "role": "assistant",
     "content": "I encountered an error communicating with Bedrock: An error occurred (AccessDeniedException) when calling the InvokeModel operation: User: arn:aws:iam::231733667519:user/shishank.sidha@nitorinfotech.com is not authorized to perform: bedrock:InvokeModel on resource: arn:aws:bedrock:us-east-1:231733667519:inference-profile/us.anthropic.claude-sonnet-4-5-20250929-v1:0 with an explicit deny in an identity-based policy: arn:aws:iam::aws:policy/AWSCompromisedKeyQuarantineV3"
+  },
+  {
+    "role": "user",
+    "content": "hi"
+  },
+  {
+    "role": "assistant",
+    "content": "I encountered an error communicating with Bedrock: An error occurred (AccessDeniedException) when calling the InvokeModel operation: User: arn:aws:iam::231733667519:user/shishank.sidha@nitorinfotech.com is not authorized to perform: bedrock:InvokeModel on resource: arn:aws:bedrock:us-east-1:231733667519:inference-profile/us.anthropic.claude-sonnet-4-5-20250929-v1:0 with an explicit deny in an identity-based policy: arn:aws:iam::aws:policy/AWSCompromisedKeyQuarantineV3"
+  },
+  {
+    "role": "user",
+    "content": "hi"
+  },
+  {
+    "role": "assistant",
+    "content": "Hello. I'm the OnboardIQ Assistant. I can help you with enterprise data migration and onboarding. How can I assist you today? Would you like to discuss the current pipeline run, review the entity catalog, or address any data quality issues?"
+  },
+  {
+    "role": "user",
+    "content": "hi"
+  },
+  {
+    "role": "assistant",
+    "content": "Hello again. Is there something specific you'd like to know or discuss about the pipeline context, such as the entity catalog, data quality report, or field mappings? I'm here to help with any questions or concerns you may have."
   }
 ]

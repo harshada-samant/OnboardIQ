@@ -389,12 +389,7 @@ def start_chat(context: dict, verbose: bool = True):
                               "and prompt them to run the pipeline first using: 'python main.py run' to analyze their data."
 
         try:
-            client = boto3.client(
-                service_name="bedrock-runtime",
-                region_name=aws_region,
-                aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-                aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-            )
+            client = config.get_bedrock_client()
             
             payload = {
                 "anthropic_version": "bedrock-2023-05-31",
@@ -414,7 +409,7 @@ def start_chat(context: dict, verbose: bool = True):
             body = json.loads(response["body"].read())
             reply = body["content"][0]["text"].strip()
         except Exception as e:
-            reply = f"[Error calling Bedrock: {e}]"
+            reply = f"[Error calling {config.get_provider_name()}: {e}]"
 
         # Parse and execute any mapping action embedded in reply
         action, clean_reply = _extract_mapping_action(reply)

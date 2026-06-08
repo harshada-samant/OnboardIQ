@@ -6,7 +6,7 @@ Pure NiceGUI — no raw HTML inputs or JavaScript.
 """
 
 from datetime import datetime
-from nicegui import app, ui
+from nicegui import app, ui, Client
 from frontend.logo import LOGO_32
 
 # Backend service integrations
@@ -66,7 +66,15 @@ def get_user_output_files(user_id: int) -> list:
 
 
 @ui.page('/')
-def dashboard_page():
+async def dashboard_page(client: Client):
+    # Enforce sessionStorage check to detect tab/window closes vs page refreshes
+    await client.connected()
+    is_active = await ui.run_javascript("sessionStorage.getItem('session_active')")
+    if is_active != 'true':
+        app.storage.user.clear()
+        ui.navigate.to('/login')
+        return
+
     username = app.storage.user.get('username', 'Guest')
     user_id = app.storage.user.get('user_id', 1)  # Graceful fallback to user_id=1 if session unset
 
@@ -112,6 +120,7 @@ def dashboard_page():
     ''')
 
     def handle_logout():
+        ui.run_javascript("sessionStorage.removeItem('session_active');")
         app.storage.user.clear()
         ui.navigate.to('/login')
 
@@ -195,13 +204,102 @@ def dashboard_page():
                                   .classes('text-white') \
                                   .style('background: #2563eb; border-radius: 6px; width: 40px; height: 40px;')
 
+                            async def handle_schema_upload(e):
+                                filename = e.file.name
+                                if not filename.endswith('.json'):
+                                    ui.notify('Only JSON target schemas are supported', type='warning')
+                                    return
+                                try:
+                                    username = get_username_by_id(user_id)
+                                    schema_path = config.WORKSPACES_DIR / "users" / username / "schemas" / filename
+                                    await e.file.save(str(schema_path))
+                                    
+                                    # Refresh dropdown options
+                                    new_options = get_schema_options()
+                                    schema_dropdown.options = new_options
+                                    schema_dropdown.value = filename
+                                    
+                                    # Select and save selection
+                                    update_user_schema_selection(user_id, filename)
+                                    ui.notify(f'Schema {filename} uploaded and selected', type='positive')
+                                except Exception as ex:
+                                    ui.notify(f'Failed to upload schema: {ex}', type='negative')
+
+                            ui.upload(on_upload=handle_schema_upload, auto_upload=True) \
+                                .classes('w-full q-mt-xs') \
+                                .props('accept=.json label="Upload Target Schema (.json)" flat bordered dense color=primary')
+
+
                         ui.separator().classes('q-my-sm')
+
+                        def show_preview(filename: str):
+                            username = get_username_by_id(user_id)
+                            file_path = config.WORKSPACES_DIR / "users" / username / "uploads" / filename
+                            
+                            if not file_path.exists():
+                                ui.notify(f"File not found: {filename}", type='warning')
+                                return
+                                
+                            columns = []
+                            rows = []
+                            is_table = False
+                            text_content = ""
+                            
+                            try:
+                                if filename.lower().endswith('.csv'):
+                                    import pandas as pd
+                                    df = pd.read_csv(file_path, nrows=10)
+                                    df = df.fillna('')
+                                    is_table = True
+                                    columns = [{'name': col, 'label': col, 'field': col, 'align': 'left'} for col in df.columns]
+                                    rows = df.to_dict(orient='records')
+                                elif filename.lower().endswith('.json'):
+                                    import pandas as pd
+                                    try:
+                                        df = pd.read_json(file_path)
+                                        df = df.head(10).fillna('')
+                                        is_table = True
+                                        columns = [{'name': col, 'label': col, 'field': col, 'align': 'left'} for col in df.columns]
+                                        rows = df.to_dict(orient='records')
+                                    except Exception:
+                                        with open(file_path, 'r', encoding='utf-8') as f:
+                                            text_content = f.read(1000)
+                                else:
+                                    with open(file_path, 'r', encoding='utf-8') as f:
+                                        lines = [f.readline() for _ in range(30)]
+                                        text_content = ''.join(lines)
+                            except Exception as ex:
+                                ui.notify(f"Error reading preview: {ex}", type='negative')
+                                return
+
+                            with ui.dialog() as dialog, ui.card().style('width: 900px; max-width: 95vw; max-height: 80vh; border-radius: 16px; display: flex; flex-direction: column; overflow: hidden;'):
+                                with ui.row().classes('w-full items-center justify-between no-wrap q-pa-md bg-slate-50').style('border-bottom: 1px solid #e2e8f0;'):
+                                    ui.label(f"File Preview: {filename}").classes('text-weight-bold text-slate-800').style('font-size: 1.1rem;')
+                                    ui.button(icon='close', on_click=dialog.close).props('flat round dense').classes('text-slate-500')
+                                    
+                                with ui.column().classes('w-full q-pa-md col-grow overflow-auto custom-scroll'):
+                                    if is_table:
+                                        if not rows:
+                                            ui.label("This file is empty.").classes('text-slate-500 text-center q-my-md')
+                                        else:
+                                            ui.table(columns=columns, rows=rows).classes('w-full').props('dense flat bordered wrap-cells')
+                                    else:
+                                        if not text_content:
+                                            ui.label("This file is empty.").classes('text-slate-500 text-center q-my-md')
+                                        else:
+                                            ui.code(text_content).classes('w-full').style('font-family: monospace; font-size: 11px;')
+                                
+                                with ui.row().classes('w-full justify-end q-pa-md bg-slate-50').style('border-top: 1px solid #e2e8f0;'):
+                                    ui.button('Close', on_click=dialog.close).props('unelevated').style('background: #64748b; color: white; border-radius: 8px; font-weight: 600;')
+                            
+                            dialog.open()
 
                         # 2. Source Files (Input Data) - Collapsable Folder
                         with ui.expansion('Source Files', icon='folder', value=True) \
                                 .classes('w-full') \
                                 .props('dense') \
                                 .style('color: #0f172a; font-weight: 600; font-size: 0.88rem;') as source_folder:
+                            
                             source_container = ui.column().classes('w-full gap-1 q-mt-xs')
 
                             def refresh_files():
@@ -218,7 +316,9 @@ def dashboard_page():
                                 else:
                                     with source_container:
                                         for f in files:
-                                            with ui.row().classes('w-full items-center justify-between no-wrap p-1 border-b border-slate-50 hover:bg-slate-50 rounded'):
+                                            with ui.row().classes('w-full items-center justify-between no-wrap p-1 border-b border-slate-50 hover:bg-slate-50 rounded') \
+                                                    .style('cursor: pointer;') \
+                                                    .on('click', lambda *_, name=f['name']: show_preview(name)):
                                                 with ui.column().classes('col-grow gap-0'):
                                                     ui.label(f['name']).classes('text-xs text-weight-medium text-slate-800 truncate')
                                                     ui.label(f"{format_size(f['size'])} • {format_date(f['modified'])}").classes('text-caption text-grey-4')
