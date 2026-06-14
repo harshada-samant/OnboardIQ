@@ -6,6 +6,8 @@ Pure NiceGUI — no raw HTML inputs or JavaScript.
 """
 
 from datetime import datetime
+from pathlib import Path
+import pandas as pd
 from nicegui import app, ui, Client
 from frontend.logo import LOGO_32
 
@@ -23,7 +25,10 @@ from backend.pipeline_service import (
 )
 from backend.schema_service import get_schema_options, get_user_schema_selection, update_user_schema_selection
 from backend.database import get_username_by_id
+from backend.adapters.storage_interface import LocalStorageBackend, S3StorageBackend
+from backend.adapters.s3_source_adapter import S3SourceAdapter
 import config
+
 
 def format_size(size_bytes: int) -> str:
     """Format file size in bytes to a human-readable string."""
@@ -38,10 +43,105 @@ def format_size(size_bytes: int) -> str:
 def format_date(iso_str: str) -> str:
     """Format ISO timestamp to standard format."""
     try:
+        if isinstance(iso_str, datetime):
+            return iso_str.strftime("%Y-%m-%d %H:%M")
         dt = datetime.fromisoformat(iso_str)
         return dt.strftime("%Y-%m-%d %H:%M")
     except Exception:
         return iso_str
+
+
+def get_storage_backend(username: str):
+    if config.USE_S3_SOURCE:
+        return S3StorageBackend(S3SourceAdapter(config.S3_BUCKET, config.s3_input_prefix(username)))
+    return LocalStorageBackend(str(config.INPUT_DIR))
+
+
+def list_source_files(username: str) -> list[dict]:
+    storage_backend = get_storage_backend(username)
+    files = storage_backend.list_files()
+    result = []
+    for f in files:
+        key = f.get("key")
+        modified = f.get("modified") or f.get("last_modified")
+        if not modified and key:
+            try:
+                if config.USE_S3_SOURCE and hasattr(storage_backend, "adapter"):
+                    head = storage_backend.adapter.s3.head_object(
+                        Bucket=storage_backend.adapter.bucket,
+                        Key=key
+                    )
+                    modified = head.get("LastModified")
+                else:
+                    modified = datetime.fromtimestamp(Path(key).stat().st_mtime)
+            except Exception:
+                modified = None
+        result.append({
+            "name": f.get("name") or Path(key).name,
+            "key": key,
+            "size": f.get("size", 0),
+            "modified": modified,
+            "extension": f.get("extension") or Path(key).suffix.lower(),
+        })
+    return sorted(result, key=lambda x: x["name"].lower())
+
+
+def show_source_preview(storage_backend, key: str, filename: str):
+    buf = storage_backend.read_file(key)
+    if buf is None:
+        ui.notify(f"Unable to read file: {filename}", type='negative')
+        return
+
+    ext = Path(filename).suffix.lower()
+    columns = []
+    rows = []
+    text_content = ""
+    is_table = False
+
+    try:
+        if ext == '.csv':
+            df = pd.read_csv(buf, dtype=str, keep_default_na=False, nrows=10).fillna('')
+            is_table = True
+            columns = [{'name': col, 'label': col, 'field': col, 'align': 'left'} for col in df.columns]
+            rows = df.to_dict(orient='records')
+        elif ext == '.json':
+            try:
+                df = pd.read_json(buf, dtype=str).head(10).fillna('')
+                is_table = True
+                columns = [{'name': col, 'label': col, 'field': col, 'align': 'left'} for col in df.columns]
+                rows = df.to_dict(orient='records')
+            except Exception:
+                buf.seek(0)
+                text_content = buf.read().decode('utf-8', errors='replace')
+        else:
+            text_content = buf.read().decode('utf-8', errors='replace')
+    except Exception as ex:
+        ui.notify(f"Error reading preview: {ex}", type='negative')
+        return
+
+    with ui.dialog() as dialog, ui.card().style('width: 900px; max-width: 95vw; max-height: 80vh; border-radius: 16px; display: flex; flex-direction: column; overflow: hidden;'):
+        with ui.row().classes('w-full items-center justify-between no-wrap q-pa-md bg-slate-50').style('border-bottom: 1px solid #e2e8f0;'):
+            with ui.row().classes('items-center gap-2 no-wrap'):
+                ui.label(f"File Preview: {filename}").classes('text-weight-bold text-slate-800').style('font-size: 1.1rem;')
+                ui.label("Source File").classes('text-caption text-slate-500 bg-slate-100 rounded q-px-sm q-py-xs')
+            ui.button(icon='close', on_click=dialog.close).props('flat round dense').classes('text-slate-500')
+
+        with ui.column().classes('w-full q-pa-md col-grow custom-scroll').style('overflow-y: auto; max-height: 55vh; min-height: 0;'):
+            if is_table:
+                if not rows:
+                    ui.label("This file is empty.").classes('text-slate-500 text-center q-my-md')
+                else:
+                    ui.table(columns=columns, rows=rows).classes('w-full').props('dense flat bordered wrap-cells')
+            else:
+                if not text_content:
+                    ui.label("This file is empty.").classes('text-slate-500 text-center q-my-md')
+                else:
+                    ui.code(text_content).classes('w-full').style('font-family: monospace; font-size: 11px;')
+
+        with ui.row().classes('w-full justify-end q-pa-md bg-slate-50').style('border-top: 1px solid #e2e8f0;'):
+            ui.button('Close', on_click=dialog.close).props('unelevated').style('background: #64748b; color: white; border-radius: 8px; font-weight: 600;')
+
+    dialog.open()
 
 
 def get_user_output_files(user_id: int) -> list:
@@ -105,11 +205,6 @@ async def dashboard_page(client: Client):
       }
 
       /* Custom scrollbar for the dark terminal console */
-      .terminal-scroll {
-        overflow-y: auto !important;
-        flex-grow: 1 !important;
-        min-height: 200px;
-      }
       .terminal-scroll::-webkit-scrollbar {
         width: 6px;
       }
@@ -314,20 +409,21 @@ async def dashboard_page(client: Client):
                             def refresh_files():
                                 source_container.clear()
                                 try:
-                                    files = get_user_source_files(user_id)
+                                    files = list_source_files(username)
                                 except Exception as e:
                                     files = []
                                     print(f"Error loading source files: {e}")
 
                                 if not files:
                                     with source_container:
-                                        ui.label('No input files uploaded.').classes('text-caption text-grey-5')
+                                        ui.label('No source files found.').classes('text-caption text-grey-5')
                                 else:
+                                    storage_backend = get_storage_backend(username)
                                     with source_container:
                                         for f in files:
                                             with ui.row().classes('w-full items-center justify-between no-wrap p-1 border-b border-slate-50 hover:bg-slate-50 rounded') \
                                                     .style('cursor: pointer;') \
-                                                    .on('click', lambda *_, name=f['name']: show_preview(name)):
+                                                    .on('click', lambda *_, entry=f: show_source_preview(storage_backend, entry['key'], entry['name'])):
                                                 with ui.column().classes('col-grow gap-0'):
                                                     ui.label(f['name']).classes('text-xs text-weight-medium text-slate-800 truncate')
                                                     ui.label(f"{format_size(f['size'])} • {format_date(f['modified'])}").classes('text-caption text-grey-4')
@@ -389,10 +485,8 @@ async def dashboard_page(client: Client):
                     ("Mapping", "mapping_document.json", "Mapping Agent"),
                     ("Specification", "migration_spec.json", "Specification Agent"),
                     ("Readiness", "readiness_report.json", "Readiness Agent"),
-                    ("Planning", "onboarding_plan.json", "Planning Agent"),
-                    ("Migration Agent", "migration_validation.json", "Migration Agent")
+                    ("Planning", "onboarding_plan.json", "Planning Agent")
                 ]
-
 
                 def get_current_pipeline_state():
                     try:
@@ -597,14 +691,13 @@ async def dashboard_page(client: Client):
                         # Stop polling if execution hits terminal state
                         if status in ('completed', 'failed'):
                             polling_timer.deactivate()
-                            display_step = "Migration Agent" if current_step == "MigrationAgent" else current_step
                             if status == 'completed':
-                                ui.notify(f'{display_step} completed successfully!', type='positive')
-                                refresh_stepper_ui()
-                                refresh_action_button()
-                                refresh_outputs()
+                                ui.notify('Pipeline completed successfully!', type='positive')
                             else:
-                                ui.notify(f"{display_step} failed: {status_data.get('error_message', 'Unknown error')}", type='negative')
+                                ui.notify(f"{current_step} failed: {status_data.get('error_message', 'Unknown error')}", type='negative')
+                            
+                            refresh_stepper_ui()
+                            refresh_action_button()
                             refresh_outputs() # Refresh Output Files list
                             
                     except Exception as ex:
@@ -652,8 +745,7 @@ async def dashboard_page(client: Client):
                     completed, next_step = get_current_pipeline_state()
                     
                     if state['status'] == 'running':
-                        display_step = "Migration Agent" if state['current_step'] == "MigrationAgent" else state['current_step']
-                        start_button.set_text(f"Running {display_step}...")
+                        start_button.set_text(f"Running {state['current_step']}...")
                         start_button.disable()
                         start_button.style('background: #94a3b8; border-radius: 8px; font-weight: 600; padding: 4px 16px;')
                         reset_button.disable()
@@ -664,9 +756,11 @@ async def dashboard_page(client: Client):
                             start_button.disable()
                             start_button.style('background: #16a34a; border-radius: 8px; font-weight: 600; padding: 4px 16px;')
                         else:
-                            start_button.set_text(f"RUN {next_step.upper()}")
+                            start_button.set_text(f"RUN {next_step.upper()} AGENT")
                             start_button.enable()
                             start_button.style('background: #2563eb; border-radius: 8px; font-weight: 600; padding: 4px 16px;')
+
+
 
                 def on_start_click():
                     nonlocal rendered_logs_count
@@ -675,7 +769,8 @@ async def dashboard_page(client: Client):
                         if not next_step:
                             ui.notify('Pipeline is already fully completed!', type='warning')
                             return
-                        
+                            
+                        # Trigger single step run
                         exec_id = start_pipeline_step(user_id, next_step)
                         
                         # Reset states
@@ -684,7 +779,7 @@ async def dashboard_page(client: Client):
                         state['progress'] = 0.0
                         state['current_step'] = next_step
                         state['log_lines'] = [
-                            f'<span style="color: #60a5fa; font-weight: bold;">[System]</span> <span style="color: #e2e8f0;">🚀 Starting {next_step}...</span>'
+                            f'<span style="color: #60a5fa; font-weight: bold;">[System]</span> <span style="color: #e2e8f0;">🚀 Starting {next_step} Agent...</span>'
                         ]
                         rendered_logs_count = 0
                         
@@ -698,7 +793,7 @@ async def dashboard_page(client: Client):
                         # Clear console and set initial lines
                         log_console.set_content('<br>'.join(state['log_lines']))
                         
-                        ui.notify(f'{next_step} started successfully!', type='info')
+                        ui.notify(f'{next_step} Agent started successfully!', type='info')
                         
                         # Update button and stepper immediately
                         refresh_action_button()
@@ -775,7 +870,7 @@ async def dashboard_page(client: Client):
                 log_console = ui.html(
                     '<span style="color: #64748b;">[OnboardIQ Console v1.0] Ready. Click RUN DISCOVERY AGENT to begin.</span>'
                 ).classes('w-full terminal-scroll p-4').style(
-                    'flex-grow: 1; overflow-y: auto; height: 0; min-height: 200px; '
+                    'flex: 1 1 0%; min-height: 400px; overflow-y: scroll; '
                     'background-color: #0f172a; font-family: "Fira Code", Courier, monospace; font-size: 11px; '
                     'white-space: pre-wrap; border-radius: 12px; border: 1px solid #1e293b;'
                 )

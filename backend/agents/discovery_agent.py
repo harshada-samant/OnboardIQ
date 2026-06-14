@@ -536,7 +536,7 @@ def run_discovery_agent(file_paths: list, context: dict, verbose: bool = True) -
     if verbose:
         print(f"\n[Step 1] Reading {len(file_paths)} file(s)...")
 
-    payload = build_context_payload(file_paths)
+    payload = build_context_payload(file_paths, context=context)
 
     if not payload["files"]:
         print("  x No files could be read. Aborting.")

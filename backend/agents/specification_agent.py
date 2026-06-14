@@ -81,6 +81,42 @@ def _parse_json(raw: str) -> dict:
         return json.loads(cleaned[start:end + 1])
 
 
+def _load_json_file(file_ref: str, context: dict):
+    """Returns (data, error_string). Never raises. data is None on failure."""
+    storage = context.get("_storage") if context else None
+    try:
+        if storage is not None and hasattr(storage, "read_text_file"):
+            text = storage.read_text_file(file_ref)
+            if text is None:
+                return None, f"Failed to read {file_ref}"
+            return json.loads(text), None
+        with open(file_ref, "r", encoding="utf-8") as f:
+            return json.load(f), None
+    except Exception as e:
+        return None, str(e)
+
+
+def _load_target_schema(context: dict):
+    """Loads target_schema.json from storage first, then falls back to local disk."""
+    username = context.get("username") if context else None
+    storage = context.get("_storage") if context else None
+
+    if storage is not None and username:
+        key = f"workspaces/users/{username}/schemas/target_schema.json"
+        schema_text = storage.read_text_file(key)
+        if schema_text is not None:
+            try:
+                return json.loads(schema_text), None
+            except Exception as e:
+                return None, str(e)
+
+    schema_path = str(config.TARGET_SCHEMA_PATH)
+    if not os.path.exists(schema_path):
+        return None, f"Target schema not found at {schema_path}"
+
+    return _load_json_file(schema_path, {})
+
+
 # ── prompts ───────────────────────────────────────────────────────────────────
 
 SPEC_SYSTEM = """You are the OnboardIQ Specification Agent, a senior data architect and database engineer.
@@ -180,12 +216,10 @@ def run_specification_agent(context: dict, verbose: bool = True) -> dict:
             return context
 
     # 3. Load Inputs
-    if not os.path.exists(schema_path):
-        print(f"  x Target schema not found at {schema_path}")
+    target_schema, err = _load_target_schema(context)
+    if target_schema is None:
+        print(f"  x Failed to load target schema: {err}")
         return context
-
-    with open(schema_path, "r", encoding="utf-8") as f:
-        target_schema = json.load(f)
 
     # Get mappings
     mappings_data = context.get("mappings")

@@ -328,13 +328,12 @@ def api_send_chat_message(user_id: int, req: ChatSendRequest):
 def start_pipeline_step(user_id: int, step_name: str) -> str:
     """
     Generates a unique execution ID and spawns the pipeline runner for a single step in a background daemon thread.
-    Returns the execution ID immediately. Strips spaces from step_name for backward compatibility.
+    Returns the execution ID immediately.
     """
-    normalized_step = step_name.replace(" ", "")
     execution_id = str(uuid.uuid4())
     thread = threading.Thread(
         target=run_pipeline,
-        args=(user_id, execution_id, normalized_step),
+        args=(user_id, execution_id, step_name),
         daemon=True
     )
     thread.start()
@@ -358,8 +357,7 @@ def get_pipeline_progress(user_id: int) -> dict:
         ("Mapping", outputs_dir / "mapping_document.json"),
         ("Specification", outputs_dir / "migration_spec.json"),
         ("Readiness", outputs_dir / "readiness_report.json"),
-        ("Planning", outputs_dir / "onboarding_plan.json"),
-        ("Migration Agent", outputs_dir / "migration_validation.json")
+        ("Planning", outputs_dir / "onboarding_plan.json")
     ]
     
     completed_steps = []

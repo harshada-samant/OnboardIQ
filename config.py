@@ -12,12 +12,10 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 OUTPUT_DIR = BASE_DIR / "outputs"
+INPUT_DIR = DATA_DIR / "sample"
 SCHEMAS_DIR = BASE_DIR / "schemas"
 DB_PATH = DATA_DIR / "onboardiq.db"
-DUCKDB_PATH = DATA_DIR / "crm_platform.duckdb"  # For duckdb, we can point directly to the .db file
 WORKSPACES_DIR = BASE_DIR / "workspaces"
-INPUT_DIR =  DATA_DIR / "sample"
-PIPELINE_CONFIG_PATH  = BASE_DIR    / "pipeline_config.json" 
 
 # Specific file paths
 TARGET_SCHEMA_PATH = SCHEMAS_DIR / "target_schema.json"
@@ -38,6 +36,28 @@ def get_provider_name() -> str:
     return "Groq" if LLM_PROVIDER == "groq" else "Bedrock"
 
 
+def normalize_bedrock_model_id(model_id: str) -> str:
+    """
+    Normalizes Bedrock model IDs for known aliases/typos.
+    """
+    normalized = (model_id or "").strip()
+
+    # Bedrock rejects this alias, but the repo's Gemma tests use the shorter ID.
+    if normalized.lower() == "google.gemma-3-4b-it-v1:0":
+        return "google.gemma-3-4b-it"
+
+    return normalized
+
+
+def get_bedrock_model_id() -> str:
+    """
+    Returns the active Bedrock model ID, normalizing known alias variants.
+    """
+    return normalize_bedrock_model_id(
+        os.getenv("AWS_BEDROCK_MODEL", "us.anthropic.claude-sonnet-4-5-20250929-v1:0")
+    )
+
+
 def set_user_workspace(username: str) -> None:
     """
     Dynamically configures active paths (INPUT_DIR, OUTPUT_DIR, and all specific report paths)
@@ -53,7 +73,6 @@ def set_user_workspace(username: str) -> None:
     INPUT_DIR = user_workspace_dir / "uploads"
     OUTPUT_DIR = user_workspace_dir / "outputs"
     SCHEMAS_DIR = user_workspace_dir / "schemas"
-    
     
     INPUT_DIR.mkdir(parents=True, exist_ok=True)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -87,7 +106,8 @@ def check_bedrock_connectivity() -> bool:
         import boto3
         import json
         aws_region = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION", "us-east-1")
-        model_id = os.getenv("AWS_BEDROCK_MODEL", "us.anthropic.claude-sonnet-4-5-20250929-v1:0")
+        raw_model_id = os.getenv("AWS_BEDROCK_MODEL", "us.anthropic.claude-sonnet-4-5-20250929-v1:0").strip()
+        model_id = get_bedrock_model_id()
         
         kwargs = {
             "service_name": "bedrock-runtime",
@@ -122,6 +142,8 @@ def check_bedrock_connectivity() -> bool:
         )
         return True
     except Exception as e:
+        if "ValidationException" in str(e):
+            print(f"[config] Bedrock rejected model ID '{raw_model_id}'. Using '{get_bedrock_model_id()}' instead.")
         print(f"[config] AWS Bedrock connectivity check failed: {e}")
         return False
 
@@ -203,6 +225,8 @@ class BedrockOrGroqClientWrapper:
     def invoke_model(self, modelId, body, contentType="application/json", accept="application/json"):
         import os
         import json
+
+        modelId = normalize_bedrock_model_id(modelId)
 
         # Check if we should directly use Groq
         if LLM_PROVIDER == "groq":
@@ -401,3 +425,24 @@ def get_bedrock_client():
             print(f"[config] Warning: Failed to initialize standard Bedrock client: {e}")
 
     return BedrockOrGroqClientWrapper(bedrock_client)
+
+
+# ── S3 source toggle ──────────────────────────────────────────────────────────
+USE_S3_SOURCE   = os.getenv('USE_S3_SOURCE', 'false').lower() == 'true'
+S3_BUCKET       = os.getenv('S3_BUCKET', '')
+S3_INPUT_PREFIX = os.getenv('S3_INPUT_PREFIX', 'inputs')
+
+def s3_input_prefix(username: str, job_id: str = None) -> str:
+    """
+    Returns the S3 prefix for a user's input files.
+    Mirrors local structure: workspaces/users/{username}/uploads/
+    job_id is kept as optional parameter for signature compatibility but not used.
+    """
+    return f'workspaces/users/{_sanitise(username)}/uploads'
+
+def _sanitise(value: str) -> str:
+    import re
+    safe = re.sub(r'[^a-zA-Z0-9_\-]', '_', value).strip('_')
+    if not safe:
+        raise ValueError(f'Invalid S3 path segment: {repr(value)}')
+    return safe

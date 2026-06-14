@@ -8,8 +8,6 @@ sys.stdout.reconfigure(encoding='utf-8')
 load_dotenv()
 
 aws_region = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION", "us-east-1")
-print("aws_region:", aws_region)
-print("aws_access_key_id:", os.getenv("AWS_ACCESS_KEY_ID"))
 client = boto3.client(
     "bedrock-runtime",
     region_name=aws_region,
@@ -18,7 +16,7 @@ client = boto3.client(
 )
 
 response = client.invoke_model(
-    modelId="google.gemma-3-27b-it",
+    modelId="google.gemma-3-4b-it",
     body=json.dumps({
         "messages": [
             {"role": "user", "content": "Say hello!"}

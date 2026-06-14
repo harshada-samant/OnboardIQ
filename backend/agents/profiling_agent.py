@@ -18,17 +18,46 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
 
 
-def _resolve_file_path(file_name: str, source_files: list) -> str:
-    """Finds the absolute path in source_files that matches the base filename."""
-    for path_str in source_files:
-        if os.path.basename(path_str).lower() == file_name.lower():
-            return path_str
-    # Fallback to local user uploads folder
-    return str(config.INPUT_DIR / file_name)
+def _load_dataframe(file_ref: str, context: dict):
+    """Returns (df, error_string). Never raises. df is None on failure."""
+    storage = context.get('_storage')
+    ext = os.path.splitext(file_ref)[1].lower()
+    try:
+        if storage is None:
+            if ext == '.csv':
+                return pd.read_csv(file_ref, dtype=str, keep_default_na=False), None
+            elif ext == '.json':
+                return pd.read_json(file_ref, dtype=str), None
+            return None, f'No storage backend for {file_ref}'
+        if ext == '.csv':
+            buf = storage.read_file(file_ref)
+            if buf is None:
+                return None, f'Failed to read {file_ref}'
+            return pd.read_csv(buf, dtype=str, keep_default_na=False), None
+        elif ext == '.json':
+            buf = storage.read_file(file_ref)
+            if buf is None:
+                return None, f'Failed to read {file_ref}'
+            return pd.read_json(buf, dtype=str), None
+        return None, f'Unsupported extension: {ext}'
+    except Exception as e:
+        return None, str(e)
 
 
+def _resolve_full_key(filename: str, context: dict) -> str:
+    """
+    Resolves a short filename like 'assets.csv' to its full key
+    like 'inputs/user1/test_job_1/assets.csv' using context['source_files'].
+    Falls back to filename if no match found.
+    """
+    source_files = context.get('source_files', [])
+    for key in source_files:
+        if key.endswith('/' + filename) or key == filename:
+            return key
+    return filename
 
-def _load_logical_table_df(logical_table_record: dict, source_files: list) -> pd.DataFrame:
+
+def _load_logical_table_df(logical_table_record: dict, context: dict) -> pd.DataFrame:
     """
     Concatenates all data source files mapped to a logical table
     into a single pandas DataFrame.
@@ -38,16 +67,13 @@ def _load_logical_table_df(logical_table_record: dict, source_files: list) -> pd
         if not sf.get("has_data"):
             continue
         file_name = sf["file_name"]
-        file_path = _resolve_file_path(file_name, source_files)
-        
-        ext = os.path.splitext(file_path)[-1].lower()
+        file_ref = _resolve_full_key(file_name, context)
+        df, error = _load_dataframe(file_ref, context)
+        if df is None:
+            if error:
+                print(f"  ! [profiling] Failed to load physical file {file_name} for logical table: {error}")
+            continue
         try:
-            if ext == ".csv":
-                df = pd.read_csv(file_path)
-            elif ext == ".json":
-                df = pd.read_json(file_path)
-            else:
-                continue
             dfs.append(df)
         except Exception as e:
             print(f"  ! [profiling] Failed to load physical file {file_name} for logical table: {e}")
@@ -79,8 +105,6 @@ def run_profiling_agent(context: dict, verbose: bool = True) -> dict:
 
     entity_catalog = context.get("entity_catalog", {})
     file_registry  = context.get("file_registry", [])
-    source_files   = context.get("source_files", [])
-
     if not entity_catalog or not file_registry:
         print("  x Error: Discovery metadata missing in context. Run Discovery Agent first.")
         return context
@@ -98,7 +122,7 @@ def run_profiling_agent(context: dict, verbose: bool = True) -> dict:
         logical_name = reg_entry["logical_table"]
 
         # 1. Load merged dataframe
-        df = _load_logical_table_df(reg_entry, source_files)
+        df = _load_logical_table_df(reg_entry, context)
         if df.empty:
             if verbose:
                 print(f"\n  Profiling logical table: {logical_name}...")
@@ -210,7 +234,7 @@ def run_profiling_agent(context: dict, verbose: bool = True) -> dict:
                 if not target_reg:
                     continue
 
-                to_df = _load_logical_table_df(target_reg, source_files)
+                to_df = _load_logical_table_df(target_reg, context)
                 if to_df.empty:
                     continue
 

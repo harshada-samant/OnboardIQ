@@ -1,0 +1,68 @@
+{
+  "entity_name": "Users",
+  "source_file": "Users",
+  "row_count": 5,
+  "primary_key": "user_id",
+  "fields": [
+    {
+      "name": "user_id",
+      "dtype": "str",
+      "role": "primary_key",
+      "null_pct": 0.0,
+      "unique_count": 5
+    },
+    {
+      "name": "name",
+      "dtype": "str",
+      "role": "regular",
+      "null_pct": 0.0,
+      "unique_count": 5
+    },
+    {
+      "name": "role",
+      "dtype": "str",
+      "role": "regular",
+      "null_pct": 0.0,
+      "unique_count": 4
+    },
+    {
+      "name": "email",
+      "dtype": "str",
+      "role": "regular",
+      "null_pct": 0.0,
+      "unique_count": 5
+    },
+    {
+      "name": "department",
+      "dtype": "str",
+      "role": "regular",
+      "null_pct": 0.0,
+      "unique_count": 4
+    },
+    {
+      "name": "active",
+      "dtype": "str",
+      "role": "regular",
+      "null_pct": 0.0,
+      "unique_count": 2
+    }
+  ],
+  "fk_candidates": [
+    {
+      "field": "email",
+      "pattern": null,
+      "sample_values": [
+        "alice@company.com",
+        "bob@company.com",
+        "carol@company.com",
+        "",
+        "eve@company.com"
+      ],
+      "reasoning": "No clear pattern found in email values"
+    }
+  ],
+  "data_quality_notes": [
+    "department has 20% less unique values than rows",
+    "active has 60% less unique values than rows"
+  ]
+}

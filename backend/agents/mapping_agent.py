@@ -34,6 +34,42 @@ RETRY_DELAY  = 3
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+def _load_json_file(file_ref: str, context: dict):
+    """Returns (data, error_string). Never raises. data is None on failure."""
+    storage = context.get("_storage") if context else None
+    try:
+        if storage is not None and hasattr(storage, "read_text_file"):
+            text = storage.read_text_file(file_ref)
+            if text is None:
+                return None, f"Failed to read {file_ref}"
+            return json.loads(text), None
+        with open(file_ref, "r", encoding="utf-8") as f:
+            return json.load(f), None
+    except Exception as e:
+        return None, str(e)
+
+
+def _load_target_schema(context: dict):
+    """Loads target_schema.json from storage first, then falls back to local disk."""
+    username = context.get("username") if context else None
+    storage = context.get("_storage") if context else None
+
+    if storage is not None and username:
+        key = f"workspaces/users/{username}/schemas/target_schema.json"
+        schema_text = storage.read_text_file(key)
+        if schema_text is not None:
+            try:
+                return json.loads(schema_text), None
+            except Exception as e:
+                return None, str(e)
+
+    schema_path = str(config.TARGET_SCHEMA_PATH)
+    if not os.path.exists(schema_path):
+        return None, f"Target schema not found at {schema_path}"
+
+    return _load_json_file(schema_path, {})
+
+
 def _call_bedrock(prompt: str, system: str, label: str = "", max_tokens: int = 4096, temperature: float = 0.0) -> str:
     last_error = None
     aws_region = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION", "us-east-1")
@@ -101,8 +137,8 @@ def _load_user_mappings() -> list:
     os.makedirs(config.OUTPUT_DIR, exist_ok=True)
     if not os.path.exists(path):
         return []
-    with open(path) as f:
-        return json.load(f)
+    data, _ = _load_json_file(path, {})
+    return data or []
 
 
 def _save_user_mappings(mappings: list) -> None:
@@ -228,13 +264,10 @@ def run_mapping_agent(context: dict, verbose: bool = True) -> dict:
         return context
 
     # Load target schema
-    schema_path = str(config.TARGET_SCHEMA_PATH)
-    if not os.path.exists(schema_path):
-        print(f"  x Target schema not found at {schema_path}")
+    target_schema, err = _load_target_schema(context)
+    if target_schema is None:
+        print(f"  x Failed to load target schema: {err}")
         return context
-
-    with open(schema_path) as f:
-        target_schema = json.load(f)
 
     if verbose:
         entities = [e.get("entity_name") for e in entity_catalog.get("entities", [])]

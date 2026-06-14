@@ -3,5 +3,4 @@ __pycache__/
 .antigravitycli/
 .env
 .nicegui/
-.testing/
-.ipynb
+.zip

@@ -2,12 +2,20 @@ import sys
 import threading
 import uuid
 import json
+import shutil
 from datetime import datetime
 from pathlib import Path
+
+# Add root workspace and backend directories to path
+root_dir = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(root_dir))
+sys.path.insert(0, str(root_dir / "backend"))
+
 import config
 from backend.database import get_username_by_id
-from pipeline import list_files
 from context import fresh_context, save_snapshot, load_snapshot
+from backend.adapters.s3_source_adapter import S3SourceAdapter
+from backend.adapters.storage_interface import LocalStorageBackend, S3StorageBackend
 
 # Import agent runner functions directly
 from agents.discovery_agent import run_discovery_agent
@@ -16,12 +24,6 @@ from agents.mapping_agent import run_mapping_agent
 from agents.specification_agent import run_specification_agent
 from agents.readiness_agent import run_readiness_agent
 from agents.planning_agent import run_planning_agent
-from agents.migration_generator_agent import run_migration_generator_agent
-from agents.migration_reviewer_agent import run_migration_reviewer_agent
-from agents.migration_repair_agent import run_migration_repair_agent
-from agents.migration_execution_agent import run_migration_execution_agent
-from agents.migration_validation_agent import run_migration_validation_agent
-from agents.migration_approval_agent import run_migration_approval_agent
 
 # Import execution store helpers
 from backend.execution_store import (
@@ -63,6 +65,19 @@ class LogRedirector:
                 line = ''.join(self.buffer).rstrip('\r')
                 append_stdout_line(self.execution_id, line)
                 self.buffer = []
+
+
+def _wipe_output_dir(output_dir: Path) -> None:
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+
+def _build_storage_backend(username: str, execution_id: str):
+    if config.USE_S3_SOURCE:
+        prefix = config.s3_input_prefix(username, execution_id)
+        return S3StorageBackend(S3SourceAdapter(config.S3_BUCKET, prefix))
+    return LocalStorageBackend(str(config.INPUT_DIR))
 
 def export_execution_json(execution_id: str, output_dir: Path, username: str = None) -> None:
     """
@@ -145,8 +160,22 @@ def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None
             export_execution_json(execution_id, Path(config.OUTPUT_DIR), None)
             return execution_id
 
-        # Initialize execution entry in store
+        # Initialize execution entry in store before validation failures so they are recorded.
         start_execution(execution_id, user_id)
+
+        # Start from a clean output workspace only for full fresh runs.
+        if target_step is None:
+            _wipe_output_dir(Path(config.OUTPUT_DIR))
+
+        storage_backend = _build_storage_backend(username, execution_id)
+        source_entries = storage_backend.list_files()
+        if not source_entries:
+            source_location = "S3 source" if config.USE_S3_SOURCE else f"local input directory '{config.INPUT_DIR}'"
+            raise ValueError(
+                f"No supported source files found in {source_location} for user '{username}'."
+            )
+
+        source_files = [entry["key"] for entry in source_entries]
         transition_step(execution_id, "Init", 0, f"Initiating pipeline execution {execution_id} for user {username}.")
 
         # Redirect standard output to capture agent logging in execution logs
@@ -160,13 +189,9 @@ def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None
             raise ValueError(f"Active workspace output path '{config.OUTPUT_DIR}' does not match expected output path '{expected_output_dir}' for user '{username}'.")
 
         # 4. Verify target schema path is set and points to an existing file
-        if not config.TARGET_SCHEMA_PATH or not Path(config.TARGET_SCHEMA_PATH).is_file():
-            raise ValueError(f"Target schema path '{config.TARGET_SCHEMA_PATH}' is missing or invalid.")
-
-        # 5. Verify input files are present
-        input_files = list_files(str(config.INPUT_DIR))
-        if not input_files:
-            raise ValueError(f"No supported files found in user uploads directory: {config.INPUT_DIR}")
+        if not config.USE_S3_SOURCE:
+            if not config.TARGET_SCHEMA_PATH or not Path(config.TARGET_SCHEMA_PATH).is_file():
+                raise ValueError(f"Target schema path '{config.TARGET_SCHEMA_PATH}' is missing or invalid.")
 
         steps_map = {
             "Discovery": {"progress": 10, "label": "Starting Discovery Agent..."},
@@ -174,35 +199,35 @@ def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None
             "Mapping": {"progress": 50, "label": "Starting Mapping Agent..."},
             "Specification": {"progress": 70, "label": "Starting Specification Agent..."},
             "Readiness": {"progress": 85, "label": "Starting Readiness Agent..."},
-            "Planning": {"progress": 95, "label": "Starting Planning Agent..."},
-            "MigrationGenerator": {"progress": 96, "label": "Starting Migration Code Generator..."},
-            "MigrationReviewer": {"progress": 97, "label": "Starting Migration Reviewer..."},
-            "MigrationRepair": {"progress": 98, "label": "Starting Migration Repair Agent..."},
-            "MigrationExecution": {"progress": 99, "label": "Starting Migration Execution Agent..."},
-            "MigrationValidation": {"progress": 100, "label": "Starting Migration Validation Agent..."},
-            "MigrationApproval": {"progress": 100, "label": "Starting Migration Approval Agent..."},
-            "MigrationAgent": {"progress": 100, "label": "Starting Migration Agent..."}
+            "Planning": {"progress": 95, "label": "Starting Planning Agent..."}
         }
 
         # Initialize or load context snapshot
         if target_step is None or target_step == "Discovery":
-            transition_step(execution_id, "Init", 5, f"Verified active configurations. Found {len(input_files)} file(s) in input directory.")
-            ctx = fresh_context(input_files)
+            transition_step(execution_id, "Init", 5, f"Verified active configurations. Found {len(source_files)} file(s) in source backend.")
+            ctx = fresh_context(source_files)
         else:
+            print(f"[debug] target_step={target_step} -> attempting to load snapshot from {config.OUTPUT_DIR / 'context_snapshot.json'}")
+            print(f"[debug] OUTPUT_DIR at load time = {config.OUTPUT_DIR}")
             ctx = load_snapshot()
             if not ctx:
-                raise ValueError("Context snapshot missing. Please run Discovery Agent first to initialize the pipeline.")
-            # Ensure fresh uploads list is mapped
-            ctx["source_files"] = input_files
+                print("[debug] load_snapshot() returned None/empty context")
+                raise ValueError("Context snapshot missing. Please run Discovery Agent first.")
+            print(f"[debug] snapshot loaded keys: {list(ctx.keys())}")
+            ctx["source_files"] = source_files
+            ctx["username"] = username
+            ctx["_storage"] = storage_backend
 
-        schema_name = Path(config.TARGET_SCHEMA_PATH).name.lower() if config.TARGET_SCHEMA_PATH else ""
+        print(f"[debug] ctx keys before agents: {list(ctx.keys())}")
+        ctx["username"] = username
+        ctx["_storage"] = storage_backend
 
         # 6. Execute Agents
         if target_step is None:
             # ORIGINAL FLOW: Run all steps sequentially
             # Discovery Step
             transition_step(execution_id, "Discovery", 10, "Starting Discovery Agent...")
-            run_discovery_agent(input_files, ctx, verbose=True)
+            run_discovery_agent(source_files, ctx, verbose=True)
             save_snapshot(ctx)
 
             # Profiling Step
@@ -229,54 +254,6 @@ def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None
             transition_step(execution_id, "Planning", 95, "Starting Planning Agent...")
             run_planning_agent(ctx, verbose=True)
             save_snapshot(ctx)
-
-            # Resolve target database for context
-            if "dynamo" in schema_name:
-                ctx["target_database"] = "dynamodb"
-            elif "duck" in schema_name or "sql" in schema_name or schema_name == "target_schema.json" or "maximo" in schema_name:
-                ctx["target_database"] = "duckdb"
-            else:
-                raise ValueError("UNSUPPORTED_TARGET_DATABASE: Target schema not recognized as DuckDB or DynamoDB.")
-
-            # Set per‑user output directory for DuckDB artifacts
-            config.OUTPUT_DIR = Path("D:/onboardingIQ/Onboardiq/workspaces/users") / username / "output"
-
-            # Migration Generator
-            transition_step(execution_id, "MigrationGenerator", 96, "Starting Migration Code Generator...")
-            run_migration_generator_agent(ctx, verbose=True)
-            save_snapshot(ctx)
-
-            # Migration Reviewer
-            transition_step(execution_id, "MigrationReviewer", 97, "Starting Migration Reviewer...")
-            run_migration_reviewer_agent(ctx, verbose=True)
-            save_snapshot(ctx)
-
-            # Conditional Repair
-            if ctx.get("review", {}).get("status") == "REJECTED" and ctx.get("review", {}).get("fix_required"):
-                transition_step(execution_id, "MigrationRepair", 98, "Starting Migration Repair Agent...")
-                run_migration_repair_agent(ctx, verbose=True)
-                save_snapshot(ctx)
-
-                # Re‑run Reviewer after repair
-                transition_step(execution_id, "MigrationReviewer", 97, "Re‑running Migration Reviewer after repair...")
-                run_migration_reviewer_agent(ctx, verbose=True)
-                save_snapshot(ctx)
-
-            # Migration Execution (only if approved)
-            if ctx.get("review", {}).get("status") == "APPROVED":
-                transition_step(execution_id, "MigrationExecution", 99, "Starting Migration Execution Agent...")
-                run_migration_execution_agent(ctx, verbose=True)
-                save_snapshot(ctx)
-
-                # Migration Validation
-                transition_step(execution_id, "MigrationValidation", 100, "Starting Migration Validation Agent...")
-                run_migration_validation_agent(ctx, verbose=True)
-                save_snapshot(ctx)
-
-            # Migration Approval (final step)
-            transition_step(execution_id, "MigrationApproval", 100, "Starting Migration Approval Agent...")
-            run_migration_approval_agent(ctx, verbose=True)
-            save_snapshot(ctx)
         else:
             # TARGET STEP FLOW: Run only the specific step
             if target_step not in steps_map:
@@ -286,7 +263,7 @@ def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None
             transition_step(execution_id, target_step, step_info["progress"], step_info["label"])
             
             if target_step == "Discovery":
-                run_discovery_agent(input_files, ctx, verbose=True)
+                run_discovery_agent(source_files, ctx, verbose=True)
             elif target_step == "Profiling":
                 run_profiling_agent(ctx, verbose=True)
             elif target_step == "Mapping":
@@ -297,74 +274,6 @@ def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None
                 run_readiness_agent(ctx, verbose=True)
             elif target_step == "Planning":
                 run_planning_agent(ctx, verbose=True)
-            elif target_step == "MigrationGenerator":
-                ctx["target_database"] = "duckdb" if "dynamo" not in schema_name else "dynamodb"
-                run_migration_generator_agent(ctx, verbose=True)
-            elif target_step == "MigrationReviewer":
-                ctx["target_database"] = "duckdb" if "dynamo" not in schema_name else "dynamodb"
-                run_migration_reviewer_agent(ctx, verbose=True)
-            elif target_step == "MigrationRepair":
-                run_migration_repair_agent(ctx, verbose=True)
-            elif target_step == "MigrationExecution":
-                ctx["target_database"] = "duckdb" if "dynamo" not in schema_name else "dynamodb"
-                run_migration_execution_agent(ctx, verbose=True)
-            elif target_step == "MigrationValidation":
-                ctx["target_database"] = "duckdb" if "dynamo" not in schema_name else "dynamodb"
-                run_migration_validation_agent(ctx, verbose=True)
-            elif target_step == "MigrationApproval":
-                run_migration_approval_agent(ctx, verbose=True)
-            elif target_step == "MigrationAgent":
-                ctx["target_database"] = "duckdb" if "dynamo" not in schema_name else "dynamodb"
-                
-                # 7. Migration Generator
-                transition_step(execution_id, "MigrationAgent", 15, "Starting Migration Code Generator...")
-                run_migration_generator_agent(ctx, verbose=True)
-                save_snapshot(ctx)
-                if ctx.get("migration", {}).get("status") == "FAILED":
-                    raise ValueError(ctx.get("migration", {}).get("error", "Migration Generator failed."))
-
-                # 8. Migration Reviewer
-                transition_step(execution_id, "MigrationAgent", 35, "Starting Migration Reviewer...")
-                run_migration_reviewer_agent(ctx, verbose=True)
-                save_snapshot(ctx)
-                if ctx.get("review", {}).get("status") == "FAILED":
-                    raise ValueError(ctx.get("review", {}).get("error", "Migration Reviewer failed."))
-
-                # 9. Bounded repair loop: up to 2 retries (3 total review runs)
-                repair_attempts = 0
-                while ctx.get("review", {}).get("status") == "REJECTED" and ctx.get("review", {}).get("fix_required") and repair_attempts < 2:
-                    repair_attempts += 1
-                    transition_step(execution_id, "MigrationAgent", 35 + repair_attempts * 10, f"Starting Migration Repair Agent (Attempt {repair_attempts})...")
-                    run_migration_repair_agent(ctx, verbose=True)
-                    save_snapshot(ctx)
-                    
-                    transition_step(execution_id, "MigrationAgent", 35 + repair_attempts * 10 + 5, f"Re-running Migration Reviewer (Attempt {repair_attempts})...")
-                    run_migration_reviewer_agent(ctx, verbose=True)
-                    save_snapshot(ctx)
-
-                # 10. Execution Agent (runs only if approved)
-                if ctx.get("review", {}).get("status") == "APPROVED":
-                    transition_step(execution_id, "MigrationAgent", 70, "Starting Migration Execution Agent...")
-                    run_migration_execution_agent(ctx, verbose=True)
-                    save_snapshot(ctx)
-                    if ctx.get("execution", {}).get("status") == "FAILED":
-                        raise ValueError(ctx.get("execution", {}).get("error", "Migration Execution failed."))
-
-                    # 11. Validation Agent
-                    transition_step(execution_id, "MigrationAgent", 90, "Starting Migration Validation Agent...")
-                    run_migration_validation_agent(ctx, verbose=True)
-                    save_snapshot(ctx)
-                    if ctx.get("validation", {}).get("status") == "FAILED":
-                        raise ValueError(ctx.get("validation", {}).get("error", "Migration Validation failed."))
-                    
-                    # 12. Approval Agent (final step)
-                    transition_step(execution_id, "MigrationAgent", 100, "Starting Migration Approval Agent...")
-                    run_migration_approval_agent(ctx, verbose=True)
-                    save_snapshot(ctx)
-                else:
-                    msg = "Skipping Execution, Validation, and Approval because Migration Review was not APPROVED."
-                    print(f"  ! {msg}")
-                    raise ValueError(msg)
                 
             save_snapshot(ctx)
 

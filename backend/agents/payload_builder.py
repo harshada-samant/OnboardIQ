@@ -32,11 +32,164 @@ import json
 import pandas as pd
 from datetime import datetime
 from collections import defaultdict
+import re
 
-
-from tools.sql_parser import parse_sql_file
+import sqlglot
+import sqlglot.expressions as exp
 
 import config
+
+
+def _load_dataframe(file_ref: str, context: dict):
+    """Returns (df, error_string). Never raises. df is None on failure."""
+    storage = context.get('_storage')
+    ext = os.path.splitext(file_ref)[1].lower()
+    try:
+        if ext == '.csv':
+            buf = storage.read_file(file_ref)
+            if buf is None:
+                return None, f'Failed to read {file_ref}'
+            return pd.read_csv(buf, dtype=str, keep_default_na=False), None
+        elif ext == '.json':
+            buf = storage.read_file(file_ref)
+            if buf is None:
+                return None, f'Failed to read {file_ref}'
+            return pd.read_json(buf, dtype=str), None
+        elif ext == '.sql':
+            return None, None
+        return None, f'Unsupported extension: {ext}'
+    except Exception as e:
+        return None, str(e)
+
+
+def _load_sql_text(file_ref: str, context: dict) -> str | None:
+    """Returns SQL file content as string. Returns None on failure. Never raises."""
+    storage = context.get('_storage')
+    if storage:
+        return storage.read_text_file(file_ref)
+    return None
+
+
+def _detect_dialect(sql_text: str) -> str:
+    text_lower = sql_text.lower()
+    if re.search(r'\w+\.\w+\.\w+', sql_text) or "struct<" in text_lower or "array<" in text_lower:
+        return "bigquery"
+    if any(kw in text_lower for kw in ["variant", " object ", "$$"]):
+        return "snowflake"
+    if re.search(r'\[\w+\]', sql_text) or any(kw in text_lower for kw in ["nvarchar", "uniqueidentifier", "getdate()"]):
+        return "tsql"
+    if any(kw in text_lower for kw in ["varchar2", "number(", "sysdate"]):
+        return "oracle"
+    if any(kw in text_lower for kw in ["serial", "bigserial", "::text", "::integer"]):
+        return "postgres"
+    if "`" in sql_text or "engine=" in text_lower or "auto_increment" in text_lower:
+        return "mysql"
+    return "mysql"
+
+
+def _parse_single_create(statement, dialect: str) -> dict:
+    table_node = statement.find(exp.Table)
+    if not table_node:
+        return None
+    table_name = table_node.name
+
+    pk_cols = set()
+    for col_def in statement.find_all(exp.ColumnDef):
+        for constraint in col_def.find_all(exp.ColumnConstraint):
+            if isinstance(constraint.args.get("kind"), exp.PrimaryKeyColumnConstraint):
+                pk_cols.add(col_def.name)
+
+    for pk in statement.find_all(exp.PrimaryKey):
+        for ident in pk.find_all(exp.Identifier):
+            pk_cols.add(ident.name)
+
+    fk_map = {}
+    for fk in statement.find_all(exp.ForeignKey):
+        fk_fields = [i.this for i in fk.args.get("expressions", [])]
+        ref = fk.args.get("reference")
+        if ref and fk_fields:
+            ref_schema = ref.args.get("this")
+            if ref_schema:
+                ref_table = ref_schema.args.get("this")
+                ref_fields = ref_schema.args.get("expressions", [])
+                ref_table_name = ref_table.name if ref_table else None
+                ref_field_name = ref_fields[0].this if ref_fields else None
+                for field in fk_fields:
+                    fk_map[field] = {
+                        "table": ref_table_name,
+                        "field": ref_field_name
+                    }
+
+    fields = []
+    for col_def in statement.find_all(exp.ColumnDef):
+        col_name = col_def.name
+        dtype = str(col_def.args.get("kind", "UNKNOWN"))
+        not_null = any(
+            isinstance(c.args.get("kind"), exp.NotNullColumnConstraint)
+            for c in col_def.find_all(exp.ColumnConstraint)
+        )
+        if col_name in pk_cols:
+            not_null = True
+
+        default_constraint = col_def.find(exp.DefaultColumnConstraint)
+        default_val = str(default_constraint.this) if default_constraint else None
+
+        fields.append({
+            "name": col_name,
+            "dtype": dtype,
+            "null_pct": None,
+            "unique_count": None,
+            "samples": [],
+            "nullable": not not_null,
+            "is_primary_key": col_name in pk_cols,
+            "is_foreign_key": col_name in fk_map,
+            "fk_references": fk_map.get(col_name),
+            "default": default_val
+        })
+
+    return {
+        "table_name": table_name,
+        "fields": fields,
+        "pk_cols": list(pk_cols),
+        "fk_map": fk_map
+    }
+
+
+def _parse_sql_text(file_ref: str, sql_text: str) -> list:
+    if not sql_text or not sql_text.strip():
+        return [{"error": f"Empty file: {file_ref}"}]
+
+    dialect = _detect_dialect(sql_text)
+    base_name = os.path.basename(file_ref)
+
+    try:
+        statements = sqlglot.parse(sql_text, dialect=dialect)
+    except Exception as e:
+        return [{"error": f"sqlglot parse failed on {file_ref}: {e}"}]
+
+    results = []
+    for statement in statements:
+        if not isinstance(statement, exp.Create):
+            continue
+        if statement.args.get("kind") != "TABLE":
+            continue
+
+        parsed = _parse_single_create(statement, dialect)
+        if not parsed:
+            continue
+
+        results.append({
+            "file_name": f"{parsed['table_name']}__from__{base_name}",
+            "source_type": "sql_ddl",
+            "dialect": dialect,
+            "row_count": None,
+            "fields": parsed["fields"]
+        })
+
+    if not results:
+        return [{"error": f"No CREATE TABLE statements found in {file_ref}"}]
+
+    return results
 
 
 
@@ -44,7 +197,7 @@ import config
 # STEP 1 — READ ALL FILES INTO RAW ENTRIES
 # -------------------------------------------------------
 
-def _read_all_files(file_paths: list) -> list:
+def _read_all_files(file_paths: list, context: dict) -> list:
     """
     Reads every file and returns a flat list of raw entries.
     One entry per CSV/JSON file.
@@ -52,19 +205,14 @@ def _read_all_files(file_paths: list) -> list:
     """
     raw_entries = []
 
-    for file_path in file_paths:
-        if not os.path.exists(file_path):
-            print(f"  ! File not found: {file_path}, skipping.")
-            continue
-
-        ext = os.path.splitext(file_path)[-1].lower()
+    for file_ref in file_paths:
+        ext = os.path.splitext(file_ref)[-1].lower()
 
         # ---- CSV / JSON ----
         if ext in (".csv", ".json"):
-            try:
-                df = pd.read_csv(file_path) if ext == ".csv" else pd.read_json(file_path)
-            except Exception as e:
-                print(f"  ! Failed to read {file_path}: {e}")
+            df, error = _load_dataframe(file_ref, context)
+            if df is None:
+                print(f"  ! Failed to read {file_ref}: {error}")
                 continue
 
             fields = []
@@ -84,8 +232,8 @@ def _read_all_files(file_paths: list) -> list:
                 })
 
             raw_entries.append({
-                "file_name":     os.path.basename(file_path),
-                "file_path":     file_path,
+                "file_name":     os.path.basename(file_ref),
+                "file_path":     file_ref,
                 "source_type":   ext.lstrip("."),
                 "dialect":       None,
                 "row_count":     len(df),
@@ -95,17 +243,21 @@ def _read_all_files(file_paths: list) -> list:
 
         # ---- SQL ----
         elif ext == ".sql":
-            entries = parse_sql_file(file_path)
+            sql_text = _load_sql_text(file_ref, context)
+            if sql_text is None:
+                print(f"  ! Failed to read {file_ref}: unable to load SQL text")
+                continue
+            entries = _parse_sql_text(file_ref, sql_text)
             for entry in entries:
                 if "error" in entry:
                     print(f"  ! SQL parse error: {entry['error']}")
                     continue
-                entry["file_path"]  = file_path
+                entry["file_path"]  = file_ref
                 entry["has_data"]   = False   # DDL only for now
                 raw_entries.append(entry)
 
         else:
-            print(f"  ! Unsupported: {file_path} (supported: .csv .json .sql)")
+            print(f"  ! Unsupported: {file_ref} (supported: .csv .json .sql)")
 
     return raw_entries
 
@@ -348,7 +500,7 @@ def _build_payload_entry(logical_name: str, entries: list) -> dict:
 # MAIN PUBLIC FUNCTION
 # -------------------------------------------------------
 
-def build_context_payload(file_paths: list) -> dict:
+def build_context_payload(file_paths: list, context: dict = None) -> dict:
     """
     Reads all files, detects duplicate schemas,
     saves file_registry.json, and returns one payload
@@ -365,7 +517,10 @@ def build_context_payload(file_paths: list) -> dict:
 
     # Step 1 — read all files
     print("  [payload] Reading files...")
-    raw_entries = _read_all_files(file_paths)
+    if context is None:
+        context = {}
+
+    raw_entries = _read_all_files(file_paths, context)
     if not raw_entries:
         return {"files": [], "registry": []}
 

@@ -1,0 +1,70 @@
+{
+  "entity_name": "Assets",
+  "source_file": "Assets.csv",
+  "row_count": 10,
+  "primary_key": "asset_no",
+  "fields": [
+    {
+      "name": "asset_no",
+      "dtype": "object",
+      "role": "primary_key",
+      "null_pct": 0.0,
+      "unique_count": 10
+    },
+    {
+      "name": "asset_name",
+      "dtype": "object",
+      "role": "attribute",
+      "null_pct": 0.0,
+      "unique_count": 10
+    },
+    {
+      "name": "loc_code",
+      "dtype": "object",
+      "role": "foreign_key",
+      "null_pct": 0.0,
+      "unique_count": 6,
+      "fk_pattern": "LOCxx"
+    },
+    {
+      "name": "asset_type",
+      "dtype": "object",
+      "role": "attribute",
+      "null_pct": 0.0,
+      "unique_count": 6
+    },
+    {
+      "name": "status",
+      "dtype": "object",
+      "role": "attribute",
+      "null_pct": 0.0,
+      "unique_count": 4
+    },
+    {
+      "name": "purchase_date",
+      "dtype": "object",
+      "role": "attribute",
+      "null_pct": 0.0,
+      "unique_count": 10
+    },
+    {
+      "name": "cost",
+      "dtype": "object",
+      "role": "attribute",
+      "null_pct": 0.0,
+      "unique_count": 10
+    }
+  ],
+  "fk_candidates": [
+    {
+      "field": "loc_code",
+      "pattern": "LOCxx",
+      "sample_values": [
+        "LOC01",
+        "LOC02"
+      ],
+      "reasoning": "Values follow a location code pattern, likely references a Locations table"
+    }
+  ],
+  "data_quality_notes": []
+}

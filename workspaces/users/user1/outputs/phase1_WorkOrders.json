@@ -1,0 +1,91 @@
+{
+  "entity_name": "WorkOrders",
+  "source_file": "WorkOrders.csv",
+  "row_count": 10,
+  "primary_key": "wo_id",
+  "fields": [
+    {
+      "name": "wo_id",
+      "dtype": "str",
+      "role": "primary_key",
+      "null_pct": 0.0,
+      "unique_count": 10
+    },
+    {
+      "name": "equip_id",
+      "dtype": "str",
+      "role": "foreign_key",
+      "null_pct": 0.0,
+      "unique_count": 7,
+      "fk_pattern": "A00x"
+    },
+    {
+      "name": "technician_ref",
+      "dtype": "str",
+      "role": "foreign_key",
+      "null_pct": 0.0,
+      "unique_count": 4,
+      "fk_pattern": "U00x"
+    },
+    {
+      "name": "status",
+      "dtype": "str",
+      "role": "attribute",
+      "null_pct": 0.0,
+      "unique_count": 3
+    },
+    {
+      "name": "priority",
+      "dtype": "str",
+      "role": "attribute",
+      "null_pct": 0.0,
+      "unique_count": 3
+    },
+    {
+      "name": "created_date",
+      "dtype": "str",
+      "role": "attribute",
+      "null_pct": 0.0,
+      "unique_count": 10
+    },
+    {
+      "name": "closed_date",
+      "dtype": "str",
+      "role": "attribute",
+      "null_pct": 0.0,
+      "unique_count": 5
+    },
+    {
+      "name": "description",
+      "dtype": "str",
+      "role": "attribute",
+      "null_pct": 0.0,
+      "unique_count": 10
+    }
+  ],
+  "fk_candidates": [
+    {
+      "field": "equip_id",
+      "pattern": "A00x",
+      "sample_values": [
+        "A001",
+        "A002",
+        "A003"
+      ],
+      "reasoning": "Values follow an equipment ID pattern, likely references an Equipment table"
+    },
+    {
+      "field": "technician_ref",
+      "pattern": "U00x",
+      "sample_values": [
+        "U001",
+        "U002",
+        "U003"
+      ],
+      "reasoning": "Values follow a technician ID pattern, likely references a Technicians table"
+    }
+  ],
+  "data_quality_notes": [
+    "closed_date has empty strings, may indicate null or missing values"
+  ]
+}
