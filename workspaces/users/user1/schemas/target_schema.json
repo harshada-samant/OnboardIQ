@@ -1,0 +1,37 @@
+{
+  "Asset": {
+    "c_asset_id":      {"type": "string",  "required": true,  "description": "Unique asset identifier"},
+    "asset_name":    {"type": "string",  "required": true,  "description": "Asset display name"},
+    "b_location_id":   {"type": "string",  "required": false, "description": "FK to Location"},
+    "asset_type":    {"type": "string",  "required": true,  "description": "Category of asset"},
+    "status":        {"type": "string",  "required": true,  "description": "Operational status"},
+    "purchase_date": {"type": "date",    "required": false, "description": "Date of purchase"},
+    "cost":          {"type": "decimal", "required": false, "description": "Purchase cost"}
+  },
+  "WorkOrder": {
+    "wo_id":          {"type": "string", "required": true,  "description": "Work order identifier"},
+    "asset_id":       {"type": "string", "required": true,  "description": "FK to Asset"},
+    "assigned_user":  {"type": "string", "required": false, "description": "FK to User"},
+    "status":         {"type": "string", "required": true,  "description": "WO status"},
+    "priority":       {"type": "string", "required": false, "description": "Priority level"},
+    "created_date":   {"type": "date",   "required": true,  "description": "Creation date"},
+    "closed_date":    {"type": "date",   "required": false, "description": "Closure date"},
+    "description":    {"type": "string", "required": false, "description": "Work description"}
+  },
+  "User": {
+    "user_id":    {"type": "string",  "required": true,  "description": "Unique user ID"},
+    "full_name":  {"type": "string",  "required": true,  "description": "Full name"},
+    "role":       {"type": "string",  "required": false, "description": "Job role"},
+    "email":      {"type": "string",  "required": false, "description": "Email address"},
+    "department": {"type": "string",  "required": false, "description": "Department name"},
+    "is_active":  {"type": "boolean", "required": false, "description": "Active flag"}
+  },
+  "Location": {
+    "location_id":   {"type": "string", "required": true,  "description": "Unique location code"},
+    "location_name": {"type": "string", "required": true,  "description": "Location display name"},
+    "parent_id":     {"type": "string", "required": false, "description": "Parent location FK"},
+    "site":          {"type": "string", "required": false, "description": "Site name"},
+    "building":      {"type": "string", "required": false, "description": "Building name"},
+    "floor":         {"type": "string", "required": false, "description": "Floor level"}
+  }
+}
