@@ -4,3 +4,4 @@ __pycache__/
 .env
 .nicegui/
 .pytest_cache/
+changed_scripts/
