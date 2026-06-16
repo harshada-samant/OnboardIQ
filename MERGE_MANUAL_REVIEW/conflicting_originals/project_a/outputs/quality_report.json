@@ -1,0 +1,300 @@
+{
+  "profile_summary": {
+    "assessed_entities": [
+      "Assets",
+      "Locations",
+      "Users"
+    ],
+    "entity_row_counts": {
+      "Assets": 10,
+      "Locations": 4,
+      "Users": 5
+    },
+    "total_records_analyzed": 19,
+    "overall_data_completeness": 100.0
+  },
+  "entity_quality": {
+    "Assets": {
+      "logical_table": "Assets",
+      "representative_file": "assets.csv",
+      "total_rows": 10,
+      "completeness_score": 100.0,
+      "duplicate_records_count": 0,
+      "orphan_records_count": 10,
+      "fields": {
+        "asset_no": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 10,
+          "issues_detected": []
+        },
+        "asset_name": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 10,
+          "issues_detected": []
+        },
+        "loc_code": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 5,
+          "issues_detected": [
+            "Referential integrity check failed: 10 orphan records reference invalid 'Locations.parent_ref' values."
+          ]
+        },
+        "status": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 3,
+          "issues_detected": []
+        },
+        "purchase_date": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 10,
+          "issues_detected": []
+        },
+        "cost": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 10,
+          "issues_detected": []
+        }
+      },
+      "checks": [
+        {
+          "check_type": "NULL_CHECK",
+          "field": "asset_no",
+          "status": "PASS",
+          "message": "Field 'asset_no' has no missing values."
+        },
+        {
+          "check_type": "NULL_CHECK",
+          "field": "asset_name",
+          "status": "PASS",
+          "message": "Field 'asset_name' has no missing values."
+        },
+        {
+          "check_type": "NULL_CHECK",
+          "field": "loc_code",
+          "status": "PASS",
+          "message": "Field 'loc_code' has no missing values."
+        },
+        {
+          "check_type": "NULL_CHECK",
+          "field": "status",
+          "status": "PASS",
+          "message": "Field 'status' has no missing values."
+        },
+        {
+          "check_type": "NULL_CHECK",
+          "field": "purchase_date",
+          "status": "PASS",
+          "message": "Field 'purchase_date' has no missing values."
+        },
+        {
+          "check_type": "NULL_CHECK",
+          "field": "cost",
+          "status": "PASS",
+          "message": "Field 'cost' has no missing values."
+        },
+        {
+          "check_type": "PRIMARY_KEY_DUPLICATES",
+          "field": "asset_no",
+          "status": "PASS",
+          "message": "Primary key 'asset_no' uniqueness verified."
+        },
+        {
+          "check_type": "REFERENTIAL_INTEGRITY",
+          "field": "loc_code",
+          "status": "FAIL",
+          "message": "Referential integrity check failed: 10 orphan records reference invalid 'Locations.parent_ref' values."
+        }
+      ]
+    },
+    "Locations": {
+      "logical_table": "Locations",
+      "representative_file": "locations.csv",
+      "total_rows": 4,
+      "completeness_score": 100.0,
+      "duplicate_records_count": 0,
+      "orphan_records_count": 0,
+      "fields": {
+        "location_key": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 4,
+          "issues_detected": []
+        },
+        "loc_name": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 4,
+          "issues_detected": []
+        },
+        "parent_ref": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 2,
+          "issues_detected": []
+        },
+        "site": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 2,
+          "issues_detected": []
+        },
+        "building": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 3,
+          "issues_detected": []
+        },
+        "floor": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 2,
+          "issues_detected": []
+        }
+      },
+      "checks": [
+        {
+          "check_type": "NULL_CHECK",
+          "field": "location_key",
+          "status": "PASS",
+          "message": "Field 'location_key' has no missing values."
+        },
+        {
+          "check_type": "NULL_CHECK",
+          "field": "loc_name",
+          "status": "PASS",
+          "message": "Field 'loc_name' has no missing values."
+        },
+        {
+          "check_type": "NULL_CHECK",
+          "field": "parent_ref",
+          "status": "PASS",
+          "message": "Field 'parent_ref' has no missing values."
+        },
+        {
+          "check_type": "NULL_CHECK",
+          "field": "site",
+          "status": "PASS",
+          "message": "Field 'site' has no missing values."
+        },
+        {
+          "check_type": "NULL_CHECK",
+          "field": "building",
+          "status": "PASS",
+          "message": "Field 'building' has no missing values."
+        },
+        {
+          "check_type": "NULL_CHECK",
+          "field": "floor",
+          "status": "PASS",
+          "message": "Field 'floor' has no missing values."
+        },
+        {
+          "check_type": "PRIMARY_KEY_DUPLICATES",
+          "field": "location_key",
+          "status": "PASS",
+          "message": "Primary key 'location_key' uniqueness verified."
+        }
+      ]
+    },
+    "Users": {
+      "logical_table": "Users",
+      "representative_file": "users.csv",
+      "total_rows": 5,
+      "completeness_score": 100.0,
+      "duplicate_records_count": 0,
+      "orphan_records_count": 0,
+      "fields": {
+        "user_id": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 5,
+          "issues_detected": []
+        },
+        "name": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 5,
+          "issues_detected": []
+        },
+        "role": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 4,
+          "issues_detected": []
+        },
+        "email": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 5,
+          "issues_detected": []
+        },
+        "department": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 4,
+          "issues_detected": []
+        },
+        "active": {
+          "null_count": 0,
+          "null_pct": 0.0,
+          "unique_count": 2,
+          "issues_detected": []
+        }
+      },
+      "checks": [
+        {
+          "check_type": "NULL_CHECK",
+          "field": "user_id",
+          "status": "PASS",
+          "message": "Field 'user_id' has no missing values."
+        },
+        {
+          "check_type": "NULL_CHECK",
+          "field": "name",
+          "status": "PASS",
+          "message": "Field 'name' has no missing values."
+        },
+        {
+          "check_type": "NULL_CHECK",
+          "field": "role",
+          "status": "PASS",
+          "message": "Field 'role' has no missing values."
+        },
+        {
+          "check_type": "NULL_CHECK",
+          "field": "email",
+          "status": "PASS",
+          "message": "Field 'email' has no missing values."
+        },
+        {
+          "check_type": "NULL_CHECK",
+          "field": "department",
+          "status": "PASS",
+          "message": "Field 'department' has no missing values."
+        },
+        {
+          "check_type": "NULL_CHECK",
+          "field": "active",
+          "status": "PASS",
+          "message": "Field 'active' has no missing values."
+        },
+        {
+          "check_type": "PRIMARY_KEY_DUPLICATES",
+          "field": "user_id",
+          "status": "PASS",
+          "message": "Primary key 'user_id' uniqueness verified."
+        }
+      ]
+    }
+  },
+  "_meta": {
+    "saved_at": "2026-06-13T10:27:40.953716",
+    "filename": "quality_report.json"
+  }
+}

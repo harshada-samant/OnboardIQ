@@ -1,0 +1,40 @@
+{
+  "entity_name": "Assets",
+  "source_file": "Assets.csv",
+  "row_count": 10,
+  "primary_key": "asset_no",
+  "fields": [
+    {
+      "name": "asset_no",
+      "dtype": "str",
+      "role": "primary_key",
+      "null_pct": 0.0,
+      "unique_count": 10
+    },
+    {
+      "name": "loc_code",
+      "dtype": "str",
+      "role": "foreign_key",
+      "null_pct": 20.0,
+      "unique_count": 5,
+      "fk_pattern": "LOC0[0-2]"
+    }
+  ],
+  "fk_candidates": [
+    {
+      "field": "loc_code",
+      "pattern": "LOC0[0-2]",
+      "sample_values": [
+        "LOC01",
+        "LOC02",
+        "LOC01",
+        "LOC03",
+        "LOC02"
+      ],
+      "reasoning": "Values follow a location code pattern, likely references a Locations table"
+    }
+  ],
+  "data_quality_notes": [
+    "loc_code has 20% nulls"
+  ]
+}

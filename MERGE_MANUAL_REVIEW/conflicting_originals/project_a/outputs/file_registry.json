@@ -1,0 +1,55 @@
+{
+  "created_at": "2026-06-13T10:27:31.742811",
+  "total_logical_tables": 3,
+  "total_source_files": 3,
+  "tables": [
+    {
+      "logical_table": "Assets",
+      "schema_fingerprint": "asset_name|asset_no|cost|loc_code|purchase_date|status",
+      "phase1_checkpoint": "phase1_Assets.json",
+      "representative_file": "assets.csv",
+      "has_duplicates": false,
+      "source_files": [
+        {
+          "file_name": "assets.csv",
+          "source_type": "csv",
+          "row_count": 10,
+          "has_data": true,
+          "dialect": null
+        }
+      ]
+    },
+    {
+      "logical_table": "Locations",
+      "schema_fingerprint": "building|floor|loc_name|location_key|parent_ref|site",
+      "phase1_checkpoint": "phase1_Locations.json",
+      "representative_file": "locations.csv",
+      "has_duplicates": false,
+      "source_files": [
+        {
+          "file_name": "locations.csv",
+          "source_type": "csv",
+          "row_count": 4,
+          "has_data": true,
+          "dialect": null
+        }
+      ]
+    },
+    {
+      "logical_table": "Users",
+      "schema_fingerprint": "active|department|email|name|role|user_id",
+      "phase1_checkpoint": "phase1_Users.json",
+      "representative_file": "users.csv",
+      "has_duplicates": false,
+      "source_files": [
+        {
+          "file_name": "users.csv",
+          "source_type": "csv",
+          "row_count": 5,
+          "has_data": true,
+          "dialect": null
+        }
+      ]
+    }
+  ]
+}

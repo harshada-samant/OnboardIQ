@@ -1,0 +1,6 @@
+user_id,name,role,email,department,active
+U001,Alice Johnson,Technician,alice@company.com,Maintenance,True
+U002,Bob Smith,Engineer,bob@company.com,Engineering,True
+U003,Carol White,Supervisor,carol@company.com,Maintenance,True
+U004,David Brown,Technician,,Operations,True
+U005,Eve Davis,Manager,eve@company.com,Management,False

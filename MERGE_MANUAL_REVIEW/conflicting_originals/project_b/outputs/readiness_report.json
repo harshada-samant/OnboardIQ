@@ -1,0 +1,101 @@
+{
+  "readiness_score": 80.1,
+  "readiness_grade": "B",
+  "sub_scores": {
+    "data_quality": 78.0,
+    "mapping_cover": 94.1,
+    "spec_complete": 66.7,
+    "rel_clarity": 65.0
+  },
+  "risk_register": [
+    {
+      "severity": "MEDIUM",
+      "entity": "Assets",
+      "title": "Field 'loc_code' contains high null percentage (20.0%).",
+      "root_cause": "High null values in the 'loc_code' field indicate potential data quality issues in the source system.",
+      "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+      "action": "Review source data for this field and apply appropriate cleansing."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Assets",
+      "title": "Field 'status' contains high null percentage (10.0%).",
+      "root_cause": "High null values in the 'status' field suggest missing or incomplete data in the source system.",
+      "impact": "Check type NULL_CHECK failed on field 'status'.",
+      "action": "Review source data for this field and apply appropriate cleansing."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Users",
+      "title": "Field 'email' contains high null percentage (20.0%).",
+      "root_cause": "High null values in the 'email' field indicate potential data quality issues in the source system.",
+      "impact": "Check type NULL_CHECK failed on field 'email'.",
+      "action": "Review source data for this field and apply appropriate cleansing."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "WorkOrders",
+      "title": "Field 'closed_date' contains high null percentage (55.0%).",
+      "root_cause": "High null values in the 'closed_date' field suggest missing or incomplete data in the source system.",
+      "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+      "action": "Review source data for this field and apply appropriate cleansing."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Users",
+      "title": "Unresolved FK candidate(s): ['email']",
+      "root_cause": "The 'email' field is identified as a potential foreign key but lacks a corresponding parent entity.",
+      "impact": "These fields look like foreign keys but no matching parent entity was found.",
+      "action": "Upload the referenced parent table or confirm the FK is to an external system."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "WorkOrders",
+      "title": "Unresolved FK candidate(s): ['status', 'priority', 'created_date', 'closed_date']",
+      "root_cause": "Multiple fields are identified as potential foreign keys without a linked parent entity.",
+      "impact": "These fields look like foreign keys but no matching parent entity was found.",
+      "action": "Upload the referenced parent table or confirm the FK is to an external system."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Assets / Equipment",
+      "title": "Potential duplicate entities (MEDIUM confidence)",
+      "root_cause": "Significant overlap in identifiers and business attributes suggests potential duplicate entities.",
+      "impact": "Strong overlap in identifiers (asset_no) and business attributes (loc_code). Field names differ but semantics are similar.",
+      "action": "Confirm whether these are the same entity and consolidate if so."
+    },
+    {
+      "severity": "LOW",
+      "entity": "Asset",
+      "title": "Incomplete spec for 'asset_type': missing ['validation_rule']",
+      "root_cause": "The 'asset_type' specification record is missing a required validation rule.",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for Asset.asset_type."
+    },
+    {
+      "severity": "LOW",
+      "entity": "Asset",
+      "title": "Incomplete spec for 'status': missing ['validation_rule']",
+      "root_cause": "The 'status' specification record is missing a required validation rule.",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for Asset.status."
+    }
+  ],
+  "risk_summary": {
+    "CRITICAL": 0,
+    "HIGH": 0,
+    "MEDIUM": 7,
+    "LOW": 2
+  },
+  "degraded_mode": false,
+  "score_weights": {
+    "data_quality": 0.35,
+    "mapping_cover": 0.35,
+    "spec_complete": 0.2,
+    "rel_clarity": 0.1
+  },
+  "_meta": {
+    "saved_at": "2026-06-12T18:34:13.058088",
+    "filename": "readiness_report.json"
+  }
+}

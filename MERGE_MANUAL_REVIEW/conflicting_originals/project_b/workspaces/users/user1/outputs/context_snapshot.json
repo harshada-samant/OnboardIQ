@@ -1,0 +1,2270 @@
+{
+  "source_files": [
+    "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\uploads\\assets.csv",
+    "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\uploads\\locations.csv",
+    "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\uploads\\users.csv",
+    "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\uploads\\work_orders.csv",
+    "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\uploads\\workorders01.csv"
+  ],
+  "target_database": "duckdb",
+  "entity_catalog": {
+    "entities": [
+      {
+        "entity_name": "Assets",
+        "source_file": "assets.csv",
+        "row_count": 10,
+        "primary_key": "asset_no",
+        "fields": [
+          {
+            "name": "asset_no",
+            "dtype": "object",
+            "role": "primary_key",
+            "null_pct": 0.0,
+            "unique_count": 10
+          },
+          {
+            "name": "loc_code",
+            "dtype": "object",
+            "role": "foreign_key",
+            "null_pct": 10.0,
+            "unique_count": 4,
+            "fk_pattern": "LOC-xx"
+          }
+        ],
+        "fk_candidates": [
+          {
+            "field": "loc_code",
+            "pattern": "LOC-xx",
+            "sample_values": [
+              "LOC-01",
+              "LOC-02"
+            ],
+            "reasoning": "Values follow a location code pattern, likely references a Locations table"
+          }
+        ],
+        "data_quality_notes": [
+          "loc_code has 10% nulls"
+        ],
+        "relationships": []
+      },
+      {
+        "entity_name": "Users",
+        "source_file": "Users.csv",
+        "row_count": 5,
+        "primary_key": "user_id",
+        "fields": [
+          {
+            "name": "user_id",
+            "dtype": "str",
+            "role": "primary_key",
+            "null_pct": 0.0,
+            "unique_count": 5
+          },
+          {
+            "name": "name",
+            "dtype": "str",
+            "role": "foreign_key",
+            "null_pct": 0.0,
+            "unique_count": 5
+          },
+          {
+            "name": "role",
+            "dtype": "str",
+            "role": "foreign_key",
+            "null_pct": 0.0,
+            "unique_count": 4
+          },
+          {
+            "name": "email",
+            "dtype": "str",
+            "role": "foreign_key",
+            "null_pct": 20.0,
+            "unique_count": 4,
+            "fk_pattern": "USR-xx"
+          },
+          {
+            "name": "department",
+            "dtype": "str",
+            "role": "foreign_key",
+            "null_pct": 0.0,
+            "unique_count": 4
+          },
+          {
+            "name": "active",
+            "dtype": "bool",
+            "role": "foreign_key",
+            "null_pct": 0.0,
+            "unique_count": 2
+          }
+        ],
+        "fk_candidates": [
+          {
+            "field": "email",
+            "pattern": "USR-xx",
+            "sample_values": [
+              "alice@company.com",
+              "bob@company.com",
+              "carol@company.com",
+              "eve@company.com"
+            ],
+            "reasoning": "Email addresses follow a consistent pattern, likely referencing a Users table"
+          },
+          {
+            "field": "department",
+            "pattern": "USR-xx",
+            "sample_values": [
+              "Maintenance",
+              "Engineering",
+              "Maintenance",
+              "Operations",
+              "Management"
+            ],
+            "reasoning": "Department names follow a consistent pattern, likely referencing a Users table"
+          },
+          {
+            "field": "active",
+            "pattern": "USR-xx",
+            "sample_values": [
+              true,
+              true,
+              true,
+              true,
+              false
+            ],
+            "reasoning": "Active status follows a consistent pattern, likely referencing a Users table"
+          }
+        ],
+        "data_quality_notes": [
+          "email has 20% nulls"
+        ],
+        "relationships": []
+      },
+      {
+        "entity_name": "WorkOrders",
+        "source_file": "WorkOrders.csv",
+        "row_count": 10,
+        "primary_key": "wo_id",
+        "fields": [
+          {
+            "name": "wo_id",
+            "dtype": "str",
+            "role": "primary_key",
+            "null_pct": 0.0,
+            "unique_count": 10
+          },
+          {
+            "name": "equip_id",
+            "dtype": "str",
+            "role": "foreign_key",
+            "null_pct": 0.0,
+            "unique_count": 7,
+            "fk_pattern": "A00x"
+          },
+          {
+            "name": "technician_ref",
+            "dtype": "str",
+            "role": "foreign_key",
+            "null_pct": 10.0,
+            "unique_count": 3,
+            "fk_pattern": "U00x"
+          },
+          {
+            "name": "status",
+            "dtype": "str",
+            "role": "foreign_key",
+            "null_pct": 0.0,
+            "unique_count": 3,
+            "fk_pattern": "STAT-x"
+          },
+          {
+            "name": "priority",
+            "dtype": "str",
+            "role": "foreign_key",
+            "null_pct": 0.0,
+            "unique_count": 3,
+            "fk_pattern": "PRIO-x"
+          },
+          {
+            "name": "created_date",
+            "dtype": "str",
+            "role": "foreign_key",
+            "null_pct": 0.0,
+            "unique_count": 10,
+            "fk_pattern": "YYYY-MM-DD"
+          },
+          {
+            "name": "closed_date",
+            "dtype": "str",
+            "role": "foreign_key",
+            "null_pct": 60.0,
+            "unique_count": 4,
+            "fk_pattern": "YYYY-MM-DD"
+          },
+          {
+            "name": "description",
+            "dtype": "str",
+            "role": "unspecified",
+            "null_pct": 0.0,
+            "unique_count": 10
+          }
+        ],
+        "fk_candidates": [
+          {
+            "field": "equip_id",
+            "pattern": "A00x",
+            "sample_values": [
+              "A001",
+              "A002",
+              "A003",
+              "A001",
+              "A999"
+            ],
+            "reasoning": "Values follow a standard equipment ID pattern, likely references an Equipment table"
+          },
+          {
+            "field": "technician_ref",
+            "pattern": "U00x",
+            "sample_values": [
+              "U001",
+              "U002",
+              "U001",
+              "U003",
+              "U002"
+            ],
+            "reasoning": "Values appear to be technician reference codes, likely references a Technicians table"
+          },
+          {
+            "field": "status",
+            "pattern": "STAT-x",
+            "sample_values": [
+              "Closed",
+              "Open",
+              "Open",
+              "Closed",
+              "Open"
+            ],
+            "reasoning": "Values represent work order statuses, likely references a Statuses table"
+          },
+          {
+            "field": "priority",
+            "pattern": "PRIO-x",
+            "sample_values": [
+              "High",
+              "Medium",
+              "Low",
+              "High",
+              "High"
+            ],
+            "reasoning": "Values represent work order priorities, likely references a Priorities table"
+          },
+          {
+            "field": "created_date",
+            "pattern": "YYYY-MM-DD",
+            "sample_values": [
+              "2024-01-10",
+              "2024-02-01",
+              "2024-02-15",
+              "2024-03-01",
+              "2024-03-10"
+            ],
+            "reasoning": "Values are in a standard date format, likely references a Dates table"
+          },
+          {
+            "field": "closed_date",
+            "pattern": "YYYY-MM-DD",
+            "sample_values": [
+              "2024-01-15",
+              "2024-03-05",
+              "2024-03-22",
+              "2024-04-12"
+            ],
+            "reasoning": "Values are in a standard date format, likely references a Dates table"
+          }
+        ],
+        "data_quality_notes": [
+          "closed_date has 60% nulls",
+          "technician_ref has 10% nulls"
+        ],
+        "relationships": [
+          {
+            "from_field": "equip_id",
+            "to_entity": "Assets",
+            "to_field": "asset_no",
+            "confidence": "HIGH",
+            "reasoning": "WorkOrders.equip_id pattern A00x matches Assets.asset_no primary key"
+          },
+          {
+            "from_field": "technician_ref",
+            "to_entity": "Users",
+            "to_field": "user_id",
+            "confidence": "MEDIUM",
+            "reasoning": "WorkOrders.technician_ref pattern U00x matches Users.user_id.  Users table not uploaded, but user ID pattern suggests a relationship."
+          },
+          {
+            "from_field": "status",
+            "to_entity": "Statuses",
+            "to_field": "status_code",
+            "confidence": "MEDIUM",
+            "reasoning": "WorkOrders.status pattern STAT-x matches Statuses.status_code. Statuses table not uploaded, but pattern suggests a relationship."
+          },
+          {
+            "from_field": "priority",
+            "to_entity": "Priorities",
+            "to_field": "priority_code",
+            "confidence": "MEDIUM",
+            "reasoning": "WorkOrders.priority pattern PRIO-x matches Priorities.priority_code. Priorities table not uploaded, but pattern suggests a relationship."
+          },
+          {
+            "from_field": "created_date",
+            "to_entity": "Dates",
+            "to_field": "date_value",
+            "confidence": "MEDIUM",
+            "reasoning": "WorkOrders.created_date pattern YYYY-MM-DD matches Dates.date_value. Dates table not uploaded, but pattern suggests a relationship."
+          },
+          {
+            "from_field": "closed_date",
+            "to_entity": "Dates",
+            "to_field": "date_value",
+            "confidence": "MEDIUM",
+            "reasoning": "WorkOrders.closed_date pattern YYYY-MM-DD matches Dates.date_value. Dates table not uploaded, but pattern suggests a relationship."
+          }
+        ]
+      }
+    ],
+    "potential_duplicate_entities": [],
+    "summary": {
+      "total_entities": 4,
+      "total_fields": 18,
+      "relationships_detected": 6,
+      "duplicate_entity_pairs": 0,
+      "failed_tables": []
+    },
+    "_meta": {
+      "saved_at": "2026-06-14T07:59:22.379851",
+      "filename": "entity_catalog.json"
+    }
+  },
+  "file_registry": [
+    {
+      "logical_table": "Assets",
+      "schema_fingerprint": "asset_name|asset_no|asset_type|cost|loc_code|purchase_date|status",
+      "phase1_checkpoint": "phase1_Assets.json",
+      "representative_file": "assets.csv",
+      "has_duplicates": false,
+      "source_files": [
+        {
+          "file_name": "assets.csv",
+          "source_type": "csv",
+          "row_count": 10,
+          "has_data": true,
+          "dialect": null
+        }
+      ]
+    },
+    {
+      "logical_table": "Locations",
+      "schema_fingerprint": "building|floor|loc_name|location_key|parent_ref|site",
+      "phase1_checkpoint": "phase1_Locations.json",
+      "representative_file": "locations.csv",
+      "has_duplicates": false,
+      "source_files": [
+        {
+          "file_name": "locations.csv",
+          "source_type": "csv",
+          "row_count": 4,
+          "has_data": true,
+          "dialect": null
+        }
+      ]
+    },
+    {
+      "logical_table": "Users",
+      "schema_fingerprint": "active|department|email|name|role|user_id",
+      "phase1_checkpoint": "phase1_Users.json",
+      "representative_file": "users.csv",
+      "has_duplicates": false,
+      "source_files": [
+        {
+          "file_name": "users.csv",
+          "source_type": "csv",
+          "row_count": 5,
+          "has_data": true,
+          "dialect": null
+        }
+      ]
+    },
+    {
+      "logical_table": "WorkOrders",
+      "schema_fingerprint": "closed_date|created_date|description|equip_id|priority|status|technician_ref|wo_id",
+      "phase1_checkpoint": "phase1_WorkOrders.json",
+      "representative_file": "work_orders.csv",
+      "has_duplicates": true,
+      "source_files": [
+        {
+          "file_name": "work_orders.csv",
+          "source_type": "csv",
+          "row_count": 10,
+          "has_data": true,
+          "dialect": null
+        },
+        {
+          "file_name": "workorders01.csv",
+          "source_type": "csv",
+          "row_count": 10,
+          "has_data": true,
+          "dialect": null
+        }
+      ]
+    }
+  ],
+  "quality_report": {
+    "profile_summary": {
+      "assessed_entities": [
+        "Assets",
+        "Locations",
+        "Users",
+        "WorkOrders"
+      ],
+      "entity_row_counts": {
+        "Assets": 10,
+        "Locations": 4,
+        "Users": 5,
+        "WorkOrders": 20
+      },
+      "total_records_analyzed": 39,
+      "overall_data_completeness": 94.37
+    },
+    "entity_quality": {
+      "Assets": {
+        "logical_table": "Assets",
+        "representative_file": "assets.csv",
+        "total_rows": 10,
+        "completeness_score": 95.71,
+        "duplicate_records_count": 0,
+        "orphan_records_count": 0,
+        "fields": {
+          "asset_no": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 10,
+            "issues_detected": []
+          },
+          "asset_name": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 10,
+            "issues_detected": []
+          },
+          "loc_code": {
+            "null_count": 2,
+            "null_pct": 20.0,
+            "unique_count": 5,
+            "issues_detected": [
+              "Field 'loc_code' contains high null percentage (20.0%)."
+            ]
+          },
+          "asset_type": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 6,
+            "issues_detected": []
+          },
+          "status": {
+            "null_count": 1,
+            "null_pct": 10.0,
+            "unique_count": 3,
+            "issues_detected": [
+              "Field 'status' contains high null percentage (10.0%)."
+            ]
+          },
+          "purchase_date": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 10,
+            "issues_detected": []
+          },
+          "cost": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 10,
+            "issues_detected": []
+          }
+        },
+        "checks": [
+          {
+            "check_type": "NULL_CHECK",
+            "field": "asset_no",
+            "status": "PASS",
+            "message": "Field 'asset_no' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "asset_name",
+            "status": "PASS",
+            "message": "Field 'asset_name' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "loc_code",
+            "status": "FAIL",
+            "message": "Field 'loc_code' contains high null percentage (20.0%)."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "asset_type",
+            "status": "PASS",
+            "message": "Field 'asset_type' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "status",
+            "status": "FAIL",
+            "message": "Field 'status' contains high null percentage (10.0%)."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "purchase_date",
+            "status": "PASS",
+            "message": "Field 'purchase_date' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "cost",
+            "status": "PASS",
+            "message": "Field 'cost' has no missing values."
+          },
+          {
+            "check_type": "PRIMARY_KEY_DUPLICATES",
+            "field": "asset_no",
+            "status": "PASS",
+            "message": "Primary key 'asset_no' uniqueness verified."
+          }
+        ]
+      },
+      "Locations": {
+        "logical_table": "Locations",
+        "representative_file": "locations.csv",
+        "total_rows": 4,
+        "completeness_score": 100.0,
+        "duplicate_records_count": 0,
+        "orphan_records_count": 0,
+        "fields": {
+          "location_key": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 4,
+            "issues_detected": []
+          },
+          "loc_name": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 4,
+            "issues_detected": []
+          },
+          "parent_ref": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 2,
+            "issues_detected": []
+          },
+          "site": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 2,
+            "issues_detected": []
+          },
+          "building": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 3,
+            "issues_detected": []
+          },
+          "floor": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 2,
+            "issues_detected": []
+          }
+        },
+        "checks": [
+          {
+            "check_type": "NULL_CHECK",
+            "field": "location_key",
+            "status": "PASS",
+            "message": "Field 'location_key' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "loc_name",
+            "status": "PASS",
+            "message": "Field 'loc_name' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "parent_ref",
+            "status": "PASS",
+            "message": "Field 'parent_ref' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "site",
+            "status": "PASS",
+            "message": "Field 'site' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "building",
+            "status": "PASS",
+            "message": "Field 'building' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "floor",
+            "status": "PASS",
+            "message": "Field 'floor' has no missing values."
+          }
+        ]
+      },
+      "Users": {
+        "logical_table": "Users",
+        "representative_file": "users.csv",
+        "total_rows": 5,
+        "completeness_score": 96.67,
+        "duplicate_records_count": 0,
+        "orphan_records_count": 0,
+        "fields": {
+          "user_id": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 5,
+            "issues_detected": []
+          },
+          "name": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 5,
+            "issues_detected": []
+          },
+          "role": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 4,
+            "issues_detected": []
+          },
+          "email": {
+            "null_count": 1,
+            "null_pct": 20.0,
+            "unique_count": 4,
+            "issues_detected": [
+              "Field 'email' contains high null percentage (20.0%)."
+            ]
+          },
+          "department": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 4,
+            "issues_detected": []
+          },
+          "active": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 2,
+            "issues_detected": []
+          }
+        },
+        "checks": [
+          {
+            "check_type": "NULL_CHECK",
+            "field": "user_id",
+            "status": "PASS",
+            "message": "Field 'user_id' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "name",
+            "status": "PASS",
+            "message": "Field 'name' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "role",
+            "status": "PASS",
+            "message": "Field 'role' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "email",
+            "status": "FAIL",
+            "message": "Field 'email' contains high null percentage (20.0%)."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "department",
+            "status": "PASS",
+            "message": "Field 'department' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "active",
+            "status": "PASS",
+            "message": "Field 'active' has no missing values."
+          },
+          {
+            "check_type": "PRIMARY_KEY_DUPLICATES",
+            "field": "user_id",
+            "status": "PASS",
+            "message": "Primary key 'user_id' uniqueness verified."
+          }
+        ]
+      },
+      "WorkOrders": {
+        "logical_table": "WorkOrders",
+        "representative_file": "work_orders.csv",
+        "total_rows": 20,
+        "completeness_score": 92.5,
+        "duplicate_records_count": 0,
+        "orphan_records_count": 1,
+        "fields": {
+          "wo_id": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 20,
+            "issues_detected": []
+          },
+          "equip_id": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 8,
+            "issues_detected": [
+              "Referential integrity check failed: 1 orphan records reference invalid 'Assets.asset_no' values."
+            ]
+          },
+          "technician_ref": {
+            "null_count": 1,
+            "null_pct": 5.0,
+            "unique_count": 3,
+            "issues_detected": [
+              "Field 'technician_ref' contains 5.0% null values."
+            ]
+          },
+          "status": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 3,
+            "issues_detected": []
+          },
+          "priority": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 3,
+            "issues_detected": []
+          },
+          "created_date": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 20,
+            "issues_detected": []
+          },
+          "closed_date": {
+            "null_count": 11,
+            "null_pct": 55.0,
+            "unique_count": 9,
+            "issues_detected": [
+              "Field 'closed_date' contains high null percentage (55.0%)."
+            ]
+          },
+          "description": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 20,
+            "issues_detected": []
+          }
+        },
+        "checks": [
+          {
+            "check_type": "NULL_CHECK",
+            "field": "wo_id",
+            "status": "PASS",
+            "message": "Field 'wo_id' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "equip_id",
+            "status": "PASS",
+            "message": "Field 'equip_id' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "technician_ref",
+            "status": "WARNING",
+            "message": "Field 'technician_ref' contains 5.0% null values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "status",
+            "status": "PASS",
+            "message": "Field 'status' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "priority",
+            "status": "PASS",
+            "message": "Field 'priority' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "created_date",
+            "status": "PASS",
+            "message": "Field 'created_date' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "closed_date",
+            "status": "FAIL",
+            "message": "Field 'closed_date' contains high null percentage (55.0%)."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "description",
+            "status": "PASS",
+            "message": "Field 'description' has no missing values."
+          },
+          {
+            "check_type": "PRIMARY_KEY_DUPLICATES",
+            "field": "wo_id",
+            "status": "PASS",
+            "message": "Primary key 'wo_id' uniqueness verified."
+          },
+          {
+            "check_type": "REFERENTIAL_INTEGRITY",
+            "field": "equip_id",
+            "status": "FAIL",
+            "message": "Referential integrity check failed: 1 orphan records reference invalid 'Assets.asset_no' values."
+          },
+          {
+            "check_type": "REFERENTIAL_INTEGRITY",
+            "field": "technician_ref",
+            "status": "PASS",
+            "message": "Referential integrity verified: WorkOrders.technician_ref -> Users.user_id."
+          }
+        ]
+      }
+    },
+    "_meta": {
+      "saved_at": "2026-06-14T07:59:30.729975",
+      "filename": "quality_report.json"
+    }
+  },
+  "mappings": {
+    "mappings": [
+      {
+        "source_entity": "Assets",
+        "target_entity": "Asset",
+        "field_mappings": [
+          {
+            "source_field": "asset_no",
+            "target_field": "c_asset_id",
+            "confidence_score": 0.95,
+            "transformation_logic": "uppercase(trim(asset_no))",
+            "reasoning": "Direct semantic match. asset_no is the primary key of source Assets, maps to c_asset_id in target."
+          },
+          {
+            "source_field": "loc_code",
+            "target_field": "b_location_id",
+            "confidence_score": 0.8,
+            "transformation_logic": "direct",
+            "reasoning": "loc_code is a foreign key to Location, maps to b_location_id in target."
+          }
+        ],
+        "unmapped_source_fields": [
+          "purchase_date"
+        ],
+        "unmapped_required_target_fields": []
+      },
+      {
+        "source_entity": "Users",
+        "target_entity": "User",
+        "field_mappings": [
+          {
+            "source_field": "user_id",
+            "target_field": "user_id",
+            "confidence_score": 0.98,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. user_id is the primary key of source Users, maps to user_id in target."
+          },
+          {
+            "source_field": "name",
+            "target_field": "full_name",
+            "confidence_score": 0.85,
+            "transformation_logic": "direct",
+            "reasoning": "Semantic match. name maps to full_name."
+          },
+          {
+            "source_field": "role",
+            "target_field": "role",
+            "confidence_score": 0.9,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. role maps to role."
+          },
+          {
+            "source_field": "email",
+            "target_field": "email",
+            "confidence_score": 0.95,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. email maps to email."
+          },
+          {
+            "source_field": "department",
+            "target_field": "department",
+            "confidence_score": 0.9,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. department maps to department."
+          },
+          {
+            "source_field": "active",
+            "target_field": "is_active",
+            "confidence_score": 0.88,
+            "transformation_logic": "direct",
+            "reasoning": "Semantic match. active maps to is_active."
+          }
+        ],
+        "unmapped_source_fields": [],
+        "unmapped_required_target_fields": []
+      },
+      {
+        "source_entity": "WorkOrders",
+        "target_entity": "WorkOrder",
+        "field_mappings": [
+          {
+            "source_field": "wo_id",
+            "target_field": "wo_id",
+            "confidence_score": 0.98,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. wo_id is the primary key of source WorkOrders, maps to wo_id in target."
+          },
+          {
+            "source_field": "equip_id",
+            "target_field": "asset_id",
+            "confidence_score": 0.8,
+            "transformation_logic": "direct",
+            "reasoning": "equip_id is a foreign key to Asset, maps to asset_id in target."
+          },
+          {
+            "source_field": "technician_ref",
+            "target_field": "assigned_user",
+            "confidence_score": 0.7,
+            "transformation_logic": "direct",
+            "reasoning": "Semantic match. technician_ref maps to assigned_user."
+          },
+          {
+            "source_field": "status",
+            "target_field": "status",
+            "confidence_score": 0.95,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. status maps to status."
+          },
+          {
+            "source_field": "priority",
+            "target_field": "priority",
+            "confidence_score": 0.9,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. priority maps to priority."
+          },
+          {
+            "source_field": "created_date",
+            "target_field": "created_date",
+            "confidence_score": 0.98,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. created_date maps to created_date."
+          },
+          {
+            "source_field": "closed_date",
+            "target_field": "closed_date",
+            "confidence_score": 0.9,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. closed_date maps to closed_date."
+          },
+          {
+            "source_field": "description",
+            "target_field": "description",
+            "confidence_score": 0.95,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. description maps to description."
+          }
+        ],
+        "unmapped_source_fields": [],
+        "unmapped_required_target_fields": []
+      }
+    ],
+    "user_mapping_count": 0,
+    "ai_mapping_count": 16,
+    "_meta": {
+      "saved_at": "2026-06-14T07:59:42.038693",
+      "filename": "mapping_document.json"
+    }
+  },
+  "specification": {
+    "entity_specification": {
+      "Asset": [
+        {
+          "source_field": "asset_no",
+          "target_field": "c_asset_id",
+          "data_type": "VARCHAR(50)",
+          "nullable": false,
+          "validation_rule": "REGEX(\\'^LOC\\d{2}$\\')",
+          "transformation": "uppercase(trim(asset_no))",
+          "business_constraint": "PRIMARY KEY"
+        },
+        {
+          "source_field": "loc_code",
+          "target_field": "b_location_id",
+          "data_type": "VARCHAR(50)",
+          "nullable": false,
+          "validation_rule": "FOREIGN_KEY(Location.location_id)",
+          "transformation": "direct",
+          "business_constraint": "FOREIGN KEY(Location.location_id)"
+        },
+        {
+          "source_field": "asset_type",
+          "target_field": "asset_type",
+          "data_type": "VARCHAR(50)",
+          "nullable": false,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": "NOT NULL"
+        },
+        {
+          "source_field": "status",
+          "target_field": "status",
+          "data_type": "VARCHAR(50)",
+          "nullable": false,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": "NOT NULL"
+        },
+        {
+          "source_field": "purchase_date",
+          "target_field": "purchase_date",
+          "data_type": "DATE",
+          "nullable": true,
+          "validation_rule": "IS_DATE",
+          "transformation": "direct",
+          "business_constraint": "NOT NULL"
+        },
+        {
+          "source_field": "cost",
+          "target_field": "cost",
+          "data_type": "DECIMAL(12, 2)",
+          "nullable": true,
+          "validation_rule": ">= 0",
+          "transformation": "direct",
+          "business_constraint": "NOT NULL"
+        }
+      ]
+    },
+    "_meta": {
+      "saved_at": "2026-06-14T08:02:11.952571",
+      "filename": "migration_spec.json"
+    }
+  },
+  "readiness": {
+    "readiness_score": 78.1,
+    "readiness_grade": "B",
+    "sub_scores": {
+      "data_quality": 68.0,
+      "mapping_cover": 94.1,
+      "spec_complete": 66.7,
+      "rel_clarity": 80.0
+    },
+    "risk_register": [
+      {
+        "severity": "MEDIUM",
+        "entity": "Assets",
+        "title": "Field 'loc_code' contains high null percentage (20.0%).",
+        "root_cause": "High null percentage in the 'loc_code' field indicates potential data quality issues in the source system.",
+        "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+        "action": "Review source data for this field and apply appropriate cleansing."
+      },
+      {
+        "severity": "MEDIUM",
+        "entity": "Assets",
+        "title": "Field 'status' contains high null percentage (10.0%).",
+        "root_cause": "High null percentage in the 'status' field suggests missing or incomplete data in the source system.",
+        "impact": "Check type NULL_CHECK failed on field 'status'.",
+        "action": "Review source data for this field and apply appropriate cleansing."
+      },
+      {
+        "severity": "MEDIUM",
+        "entity": "Users",
+        "title": "Field 'email' contains high null percentage (20.0%).",
+        "root_cause": "High null percentage in the 'email' field indicates potential data quality issues in the source system.",
+        "impact": "Check type NULL_CHECK failed on field 'email'.",
+        "action": "Review source data for this field and apply appropriate cleansing."
+      },
+      {
+        "severity": "MEDIUM",
+        "entity": "WorkOrders",
+        "title": "1 orphan record(s) (broken FK references)",
+        "root_cause": "The presence of orphan records with broken foreign key references indicates data inconsistencies.",
+        "impact": "Records in WorkOrders reference parent IDs that do not exist.",
+        "action": "Resolve missing parent records or nullify FK before loading."
+      },
+      {
+        "severity": "MEDIUM",
+        "entity": "WorkOrders",
+        "title": "Field 'closed_date' contains high null percentage (55.0%).",
+        "root_cause": "High null percentage in the 'closed_date' field suggests missing or incomplete data in the source system.",
+        "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+        "action": "Review source data for this field and apply appropriate cleansing."
+      },
+      {
+        "severity": "MEDIUM",
+        "entity": "WorkOrders",
+        "title": "Referential integrity check failed: 1 orphan records reference invalid 'Assets.asset_no' values.",
+        "root_cause": "The referential integrity check failure indicates that the 'equip_id' field references invalid asset numbers.",
+        "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'equip_id'.",
+        "action": "Review source data for this field and apply appropriate cleansing."
+      },
+      {
+        "severity": "MEDIUM",
+        "entity": "Assets",
+        "title": "Unresolved FK candidate(s): ['loc_code']",
+        "root_cause": "Unresolved foreign key candidates indicate potential issues with the source data's relationship to other entities.",
+        "impact": "These fields look like foreign keys but no matching parent entity was found.",
+        "action": "Upload the referenced parent table or confirm the FK is to an external system."
+      },
+      {
+        "severity": "MEDIUM",
+        "entity": "Users",
+        "title": "Unresolved FK candidate(s): ['email', 'department', 'active']",
+        "root_cause": "Unresolved foreign key candidates indicate potential issues with the source data's relationship to other entities.",
+        "impact": "These fields look like foreign keys but no matching parent entity was found.",
+        "action": "Upload the referenced parent table or confirm the FK is to an external system."
+      },
+      {
+        "severity": "LOW",
+        "entity": "Asset",
+        "title": "Incomplete spec for 'asset_type': missing ['validation_rule']",
+        "root_cause": "The specification record for 'asset_type' is missing a required validation rule.",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for Asset.asset_type."
+      },
+      {
+        "severity": "LOW",
+        "entity": "Asset",
+        "title": "Incomplete spec for 'status': missing ['validation_rule']",
+        "root_cause": "The specification record for 'status' is missing a required validation rule.",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for Asset.status."
+      }
+    ],
+    "risk_summary": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 8,
+      "LOW": 2
+    },
+    "degraded_mode": false,
+    "score_weights": {
+      "data_quality": 0.35,
+      "mapping_cover": 0.35,
+      "spec_complete": 0.2,
+      "rel_clarity": 0.1
+    },
+    "_meta": {
+      "saved_at": "2026-06-14T08:02:32.022860",
+      "filename": "readiness_report.json"
+    }
+  },
+  "plan": {
+    "readiness_score": 78.1,
+    "total_waves": 2,
+    "has_circular_dependencies": false,
+    "waves": [
+      {
+        "wave_number": 1,
+        "entities": [
+          "Assets",
+          "Users"
+        ],
+        "risk_items": [
+          {
+            "severity": "MEDIUM",
+            "entity": "Assets",
+            "title": "Field 'loc_code' contains high null percentage (20.0%).",
+            "root_cause": "High null percentage in the 'loc_code' field indicates potential data quality issues in the source system.",
+            "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "Assets",
+            "title": "Field 'status' contains high null percentage (10.0%).",
+            "root_cause": "High null percentage in the 'status' field suggests missing or incomplete data in the source system.",
+            "impact": "Check type NULL_CHECK failed on field 'status'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "Assets",
+            "title": "Unresolved FK candidate(s): ['loc_code']",
+            "root_cause": "Unresolved foreign key candidates indicate potential issues with the source data's relationship to other entities.",
+            "impact": "These fields look like foreign keys but no matching parent entity was found.",
+            "action": "Upload the referenced parent table or confirm the FK is to an external system."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "Users",
+            "title": "Field 'email' contains high null percentage (20.0%).",
+            "root_cause": "High null percentage in the 'email' field indicates potential data quality issues in the source system.",
+            "impact": "Check type NULL_CHECK failed on field 'email'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "Users",
+            "title": "Unresolved FK candidate(s): ['email', 'department', 'active']",
+            "root_cause": "Unresolved foreign key candidates indicate potential issues with the source data's relationship to other entities.",
+            "impact": "These fields look like foreign keys but no matching parent entity was found.",
+            "action": "Upload the referenced parent table or confirm the FK is to an external system."
+          }
+        ],
+        "csv_files": [
+          "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\assets.csv",
+          "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\users.csv"
+        ],
+        "tool_stack": [
+          "Pandas"
+        ],
+        "total_rows": 15,
+        "source_mode": "file",
+        "description": "This wave migrates core asset and user data, focusing on foundational entities for the system. It addresses data quality issues related to location codes and asset statuses, alongside user email addresses.",
+        "migration_approach": "Full load to CSV, followed by data cleansing and validation to address null percentage issues and FK constraints.",
+        "risk_mitigations": [
+          "Implement a data quality rule to identify and flag records with high null values in 'loc_code' and 'status' fields for manual review and correction.",
+          "Establish a process for resolving the unresolved FK candidate 'loc_code' by either populating the missing values or excluding the affected records.",
+          "Implement a data validation process to ensure email addresses are valid and consistent before loading into the target system."
+        ]
+      },
+      {
+        "wave_number": 2,
+        "entities": [
+          "WorkOrders"
+        ],
+        "risk_items": [
+          {
+            "severity": "MEDIUM",
+            "entity": "WorkOrders",
+            "title": "1 orphan record(s) (broken FK references)",
+            "root_cause": "The presence of orphan records with broken foreign key references indicates data inconsistencies.",
+            "impact": "Records in WorkOrders reference parent IDs that do not exist.",
+            "action": "Resolve missing parent records or nullify FK before loading."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "WorkOrders",
+            "title": "Field 'closed_date' contains high null percentage (55.0%).",
+            "root_cause": "High null percentage in the 'closed_date' field suggests missing or incomplete data in the source system.",
+            "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "WorkOrders",
+            "title": "Referential integrity check failed: 1 orphan records reference invalid 'Assets.asset_no' values.",
+            "root_cause": "The referential integrity check failure indicates that the 'equip_id' field references invalid asset numbers.",
+            "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'equip_id'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          }
+        ],
+        "csv_files": [
+          "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_02\\workorders.csv"
+        ],
+        "tool_stack": [
+          "Pandas"
+        ],
+        "total_rows": 20,
+        "source_mode": "file",
+        "description": "This wave focuses on WorkOrders, a critical operational entity. It addresses data quality concerns around closed dates and identifies orphan records with broken FK references.",
+        "migration_approach": "Full load to CSV, followed by a data quality assessment and reconciliation process to identify and correct orphan records and null values.",
+        "risk_mitigations": [
+          "Investigate and resolve the root cause of the orphan records, potentially through data reconciliation or data correction in the source system.",
+          "Implement a data quality rule to identify and flag records with null values in 'closed_date' for review and correction.",
+          "Develop a process to validate the 'Assets.asset_no' values referenced in the orphan records to ensure data integrity."
+        ]
+      }
+    ],
+    "silver_waves": [
+      {
+        "wave_number": 1,
+        "entities": [
+          "Assets",
+          "Users"
+        ],
+        "risk_items": [
+          {
+            "severity": "MEDIUM",
+            "entity": "Assets",
+            "title": "Field 'loc_code' contains high null percentage (20.0%).",
+            "root_cause": "High null percentage in the 'loc_code' field indicates potential data quality issues in the source system.",
+            "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "Assets",
+            "title": "Field 'status' contains high null percentage (10.0%).",
+            "root_cause": "High null percentage in the 'status' field suggests missing or incomplete data in the source system.",
+            "impact": "Check type NULL_CHECK failed on field 'status'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "Assets",
+            "title": "Unresolved FK candidate(s): ['loc_code']",
+            "root_cause": "Unresolved foreign key candidates indicate potential issues with the source data's relationship to other entities.",
+            "impact": "These fields look like foreign keys but no matching parent entity was found.",
+            "action": "Upload the referenced parent table or confirm the FK is to an external system."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "Users",
+            "title": "Field 'email' contains high null percentage (20.0%).",
+            "root_cause": "High null percentage in the 'email' field indicates potential data quality issues in the source system.",
+            "impact": "Check type NULL_CHECK failed on field 'email'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "Users",
+            "title": "Unresolved FK candidate(s): ['email', 'department', 'active']",
+            "root_cause": "Unresolved foreign key candidates indicate potential issues with the source data's relationship to other entities.",
+            "impact": "These fields look like foreign keys but no matching parent entity was found.",
+            "action": "Upload the referenced parent table or confirm the FK is to an external system."
+          }
+        ],
+        "csv_files": [
+          "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\assets.csv",
+          "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\users.csv"
+        ],
+        "tool_stack": [
+          "Pandas"
+        ],
+        "total_rows": 15,
+        "source_mode": "file",
+        "description": "This wave migrates core asset and user data, focusing on foundational entities for the system. It addresses data quality issues related to location codes and asset statuses, alongside user email addresses.",
+        "migration_approach": "Full load to CSV, followed by data cleansing and validation to address null percentage issues and FK constraints.",
+        "risk_mitigations": [
+          "Implement a data quality rule to identify and flag records with high null values in 'loc_code' and 'status' fields for manual review and correction.",
+          "Establish a process for resolving the unresolved FK candidate 'loc_code' by either populating the missing values or excluding the affected records.",
+          "Implement a data validation process to ensure email addresses are valid and consistent before loading into the target system."
+        ]
+      },
+      {
+        "wave_number": 2,
+        "entities": [
+          "WorkOrders"
+        ],
+        "risk_items": [
+          {
+            "severity": "MEDIUM",
+            "entity": "WorkOrders",
+            "title": "1 orphan record(s) (broken FK references)",
+            "root_cause": "The presence of orphan records with broken foreign key references indicates data inconsistencies.",
+            "impact": "Records in WorkOrders reference parent IDs that do not exist.",
+            "action": "Resolve missing parent records or nullify FK before loading."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "WorkOrders",
+            "title": "Field 'closed_date' contains high null percentage (55.0%).",
+            "root_cause": "High null percentage in the 'closed_date' field suggests missing or incomplete data in the source system.",
+            "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "WorkOrders",
+            "title": "Referential integrity check failed: 1 orphan records reference invalid 'Assets.asset_no' values.",
+            "root_cause": "The referential integrity check failure indicates that the 'equip_id' field references invalid asset numbers.",
+            "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'equip_id'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          }
+        ],
+        "csv_files": [
+          "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_02\\workorders.csv"
+        ],
+        "tool_stack": [
+          "Pandas"
+        ],
+        "total_rows": 20,
+        "source_mode": "file",
+        "description": "This wave focuses on WorkOrders, a critical operational entity. It addresses data quality concerns around closed dates and identifies orphan records with broken FK references.",
+        "migration_approach": "Full load to CSV, followed by a data quality assessment and reconciliation process to identify and correct orphan records and null values.",
+        "risk_mitigations": [
+          "Investigate and resolve the root cause of the orphan records, potentially through data reconciliation or data correction in the source system.",
+          "Implement a data quality rule to identify and flag records with null values in 'closed_date' for review and correction.",
+          "Develop a process to validate the 'Assets.asset_no' values referenced in the orphan records to ensure data integrity."
+        ]
+      }
+    ],
+    "bronze_silver_gold": {
+      "Bronze": {
+        "description": "Raw ingest layer \u2014 all source entities are captured as-is with no wave sequencing.",
+        "entities": [
+          "Assets",
+          "Users",
+          "WorkOrders"
+        ],
+        "source_entities": [
+          {
+            "entity_name": "Assets",
+            "status": "RAW"
+          },
+          {
+            "entity_name": "Users",
+            "status": "RAW"
+          },
+          {
+            "entity_name": "WorkOrders",
+            "status": "RAW"
+          }
+        ]
+      },
+      "Silver": {
+        "description": "Wave-sequenced transformation layer \u2014 entities are processed into CSV files in dependency order.",
+        "waves": [
+          {
+            "wave_number": 1,
+            "entities": [
+              "Assets",
+              "Users"
+            ],
+            "csv_files": [
+              "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\assets.csv",
+              "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\users.csv"
+            ],
+            "tool_stack": [
+              "Pandas"
+            ],
+            "total_rows": 15,
+            "source_mode": "file",
+            "risk_items": [
+              {
+                "severity": "MEDIUM",
+                "entity": "Assets",
+                "title": "Field 'loc_code' contains high null percentage (20.0%).",
+                "root_cause": "High null percentage in the 'loc_code' field indicates potential data quality issues in the source system.",
+                "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "Assets",
+                "title": "Field 'status' contains high null percentage (10.0%).",
+                "root_cause": "High null percentage in the 'status' field suggests missing or incomplete data in the source system.",
+                "impact": "Check type NULL_CHECK failed on field 'status'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "Assets",
+                "title": "Unresolved FK candidate(s): ['loc_code']",
+                "root_cause": "Unresolved foreign key candidates indicate potential issues with the source data's relationship to other entities.",
+                "impact": "These fields look like foreign keys but no matching parent entity was found.",
+                "action": "Upload the referenced parent table or confirm the FK is to an external system."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "Users",
+                "title": "Field 'email' contains high null percentage (20.0%).",
+                "root_cause": "High null percentage in the 'email' field indicates potential data quality issues in the source system.",
+                "impact": "Check type NULL_CHECK failed on field 'email'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "Users",
+                "title": "Unresolved FK candidate(s): ['email', 'department', 'active']",
+                "root_cause": "Unresolved foreign key candidates indicate potential issues with the source data's relationship to other entities.",
+                "impact": "These fields look like foreign keys but no matching parent entity was found.",
+                "action": "Upload the referenced parent table or confirm the FK is to an external system."
+              }
+            ],
+            "description": "This wave migrates core asset and user data, focusing on foundational entities for the system. It addresses data quality issues related to location codes and asset statuses, alongside user email addresses.",
+            "migration_approach": "Full load to CSV, followed by data cleansing and validation to address null percentage issues and FK constraints.",
+            "risk_mitigations": [
+              "Implement a data quality rule to identify and flag records with high null values in 'loc_code' and 'status' fields for manual review and correction.",
+              "Establish a process for resolving the unresolved FK candidate 'loc_code' by either populating the missing values or excluding the affected records.",
+              "Implement a data validation process to ensure email addresses are valid and consistent before loading into the target system."
+            ]
+          },
+          {
+            "wave_number": 2,
+            "entities": [
+              "WorkOrders"
+            ],
+            "csv_files": [
+              "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_02\\workorders.csv"
+            ],
+            "tool_stack": [
+              "Pandas"
+            ],
+            "total_rows": 20,
+            "source_mode": "file",
+            "risk_items": [
+              {
+                "severity": "MEDIUM",
+                "entity": "WorkOrders",
+                "title": "1 orphan record(s) (broken FK references)",
+                "root_cause": "The presence of orphan records with broken foreign key references indicates data inconsistencies.",
+                "impact": "Records in WorkOrders reference parent IDs that do not exist.",
+                "action": "Resolve missing parent records or nullify FK before loading."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "WorkOrders",
+                "title": "Field 'closed_date' contains high null percentage (55.0%).",
+                "root_cause": "High null percentage in the 'closed_date' field suggests missing or incomplete data in the source system.",
+                "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "WorkOrders",
+                "title": "Referential integrity check failed: 1 orphan records reference invalid 'Assets.asset_no' values.",
+                "root_cause": "The referential integrity check failure indicates that the 'equip_id' field references invalid asset numbers.",
+                "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'equip_id'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              }
+            ],
+            "description": "This wave focuses on WorkOrders, a critical operational entity. It addresses data quality concerns around closed dates and identifies orphan records with broken FK references.",
+            "migration_approach": "Full load to CSV, followed by a data quality assessment and reconciliation process to identify and correct orphan records and null values.",
+            "risk_mitigations": [
+              "Investigate and resolve the root cause of the orphan records, potentially through data reconciliation or data correction in the source system.",
+              "Implement a data quality rule to identify and flag records with null values in 'closed_date' for review and correction.",
+              "Develop a process to validate the 'Assets.asset_no' values referenced in the orphan records to ensure data integrity."
+            ]
+          }
+        ],
+        "entities": [
+          "Assets",
+          "Users",
+          "WorkOrders"
+        ],
+        "csv_files": [
+          "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\assets.csv",
+          "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\users.csv",
+          "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_02\\workorders.csv"
+        ]
+      },
+      "Gold": {
+        "description": "Target load layer \u2014 Silver CSV outputs are loaded into the target database.",
+        "loads": [
+          {
+            "wave_number": 1,
+            "source_csv_files": [
+              "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\assets.csv",
+              "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\users.csv"
+            ],
+            "target_entities": [
+              "Assets",
+              "Users"
+            ],
+            "load_target": "target_db",
+            "load_strategy": "bulk load from Silver CSVs",
+            "risk_items": [
+              {
+                "severity": "MEDIUM",
+                "entity": "Assets",
+                "title": "Field 'loc_code' contains high null percentage (20.0%).",
+                "root_cause": "High null percentage in the 'loc_code' field indicates potential data quality issues in the source system.",
+                "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "Assets",
+                "title": "Field 'status' contains high null percentage (10.0%).",
+                "root_cause": "High null percentage in the 'status' field suggests missing or incomplete data in the source system.",
+                "impact": "Check type NULL_CHECK failed on field 'status'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "Assets",
+                "title": "Unresolved FK candidate(s): ['loc_code']",
+                "root_cause": "Unresolved foreign key candidates indicate potential issues with the source data's relationship to other entities.",
+                "impact": "These fields look like foreign keys but no matching parent entity was found.",
+                "action": "Upload the referenced parent table or confirm the FK is to an external system."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "Users",
+                "title": "Field 'email' contains high null percentage (20.0%).",
+                "root_cause": "High null percentage in the 'email' field indicates potential data quality issues in the source system.",
+                "impact": "Check type NULL_CHECK failed on field 'email'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "Users",
+                "title": "Unresolved FK candidate(s): ['email', 'department', 'active']",
+                "root_cause": "Unresolved foreign key candidates indicate potential issues with the source data's relationship to other entities.",
+                "impact": "These fields look like foreign keys but no matching parent entity was found.",
+                "action": "Upload the referenced parent table or confirm the FK is to an external system."
+              }
+            ]
+          },
+          {
+            "wave_number": 2,
+            "source_csv_files": [
+              "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_02\\workorders.csv"
+            ],
+            "target_entities": [
+              "WorkOrders"
+            ],
+            "load_target": "target_db",
+            "load_strategy": "bulk load from Silver CSVs",
+            "risk_items": [
+              {
+                "severity": "MEDIUM",
+                "entity": "WorkOrders",
+                "title": "1 orphan record(s) (broken FK references)",
+                "root_cause": "The presence of orphan records with broken foreign key references indicates data inconsistencies.",
+                "impact": "Records in WorkOrders reference parent IDs that do not exist.",
+                "action": "Resolve missing parent records or nullify FK before loading."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "WorkOrders",
+                "title": "Field 'closed_date' contains high null percentage (55.0%).",
+                "root_cause": "High null percentage in the 'closed_date' field suggests missing or incomplete data in the source system.",
+                "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "WorkOrders",
+                "title": "Referential integrity check failed: 1 orphan records reference invalid 'Assets.asset_no' values.",
+                "root_cause": "The referential integrity check failure indicates that the 'equip_id' field references invalid asset numbers.",
+                "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'equip_id'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              }
+            ]
+          }
+        ],
+        "target_entities": [
+          "Assets",
+          "Users",
+          "WorkOrders"
+        ],
+        "source_csv_files": [
+          "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\assets.csv",
+          "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\users.csv",
+          "D:\\onboardingIQ\\Onboardiq\\workspaces\\users\\user1\\outputs\\silver\\wave_02\\workorders.csv"
+        ]
+      }
+    },
+    "degraded_mode": false,
+    "_meta": {
+      "saved_at": "2026-06-14T08:04:37.667345",
+      "filename": "onboarding_plan.json"
+    }
+  },
+  "meta": {
+    "run_id": "2eb32c65-26b5-4c5d-890d-c00979589bda",
+    "pipeline_version": "1.0",
+    "status": "RUNNING",
+    "created_at": "2026-06-14T07:59:09.951295+00:00"
+  },
+  "migration": {
+    "artifacts": [
+      {
+        "artifact_id": "mig_asset_migration_script_v1",
+        "artifact_type": "migration_script",
+        "entity": "Asset",
+        "path": "outputs/migration/duckdb/asset/migrate_asset.py",
+        "sha256": "d280003c49af107356a11b8d0d52be778314df5e3dff614457fe68f682ad0f88",
+        "version": 3,
+        "depends_on": []
+      },
+      {
+        "artifact_id": "mig_asset_rollback_script_v1",
+        "artifact_type": "rollback_script",
+        "entity": "Asset",
+        "path": "outputs/migration/duckdb/asset/rollback_asset.py",
+        "sha256": "c8ad6c83d7e8897a21a313b0ab6edc9c0f88ef2850f4c642127408129c8057a0",
+        "version": 2,
+        "depends_on": []
+      },
+      {
+        "artifact_id": "mig_asset_validation_script_v1",
+        "artifact_type": "validation_script",
+        "entity": "Asset",
+        "path": "outputs/migration/duckdb/asset/validate_asset.py",
+        "sha256": "539d47953207ac7a237eeeb15480b051cb3e640616fd32261805182a8ced9514",
+        "version": 3,
+        "depends_on": []
+      },
+      {
+        "artifact_id": "mig_user_migration_script_v1",
+        "artifact_type": "migration_script",
+        "entity": "User",
+        "path": "outputs/migration/duckdb/user/migrate_user.py",
+        "sha256": "6a9aa863a27f8bf65c96349af01924ff973081785cfae6b88b3262d7660bfd0a",
+        "version": 3,
+        "depends_on": []
+      },
+      {
+        "artifact_id": "mig_user_rollback_script_v1",
+        "artifact_type": "rollback_script",
+        "entity": "User",
+        "path": "outputs/migration/duckdb/user/rollback_user.py",
+        "sha256": "1163802c35aa751d2a31968dd313f87a305ba5701f06fcbb269de076d880f148",
+        "version": 2,
+        "depends_on": []
+      },
+      {
+        "artifact_id": "mig_user_validation_script_v1",
+        "artifact_type": "validation_script",
+        "entity": "User",
+        "path": "outputs/migration/duckdb/user/validate_user.py",
+        "sha256": "6db188d9120021a9ca792f4a5cb58776845e34ad7fc0009a4753b0987ae0bcc9",
+        "version": 3,
+        "depends_on": []
+      },
+      {
+        "artifact_id": "mig_workorder_migration_script_v1",
+        "artifact_type": "migration_script",
+        "entity": "WorkOrder",
+        "path": "outputs/migration/duckdb/workorder/migrate_workorder.py",
+        "sha256": "db2fb485115f4b1a3c16a0be2a9f7c8890ff82402d5a8a302782c11925698835",
+        "version": 4,
+        "depends_on": [
+          "Assets",
+          "Users"
+        ]
+      },
+      {
+        "artifact_id": "mig_workorder_rollback_script_v1",
+        "artifact_type": "rollback_script",
+        "entity": "WorkOrder",
+        "path": "outputs/migration/duckdb/workorder/rollback_workorder.py",
+        "sha256": "0ca6d092919b5d39e621ce8f1be2626341ec56645bf383cc8273b557b9286d47",
+        "version": 2,
+        "depends_on": [
+          "Assets",
+          "Users"
+        ]
+      },
+      {
+        "artifact_id": "mig_workorder_validation_script_v1",
+        "artifact_type": "validation_script",
+        "entity": "WorkOrder",
+        "path": "outputs/migration/duckdb/workorder/validate_workorder.py",
+        "sha256": "91c0507cf5e7d2caf9dfc01bc69b68d4a5e90a59bc490ea3d4d1a6b9f41da1be",
+        "version": 4,
+        "depends_on": [
+          "Assets",
+          "Users"
+        ]
+      }
+    ],
+    "execution_manifest": {
+      "run_id": "2eb32c65-26b5-4c5d-890d-c00979589bda",
+      "ordered_steps": [
+        {
+          "step": 1,
+          "entity": "Asset",
+          "depends_on": [],
+          "artifacts": [
+            "mig_asset_migration_script_v1",
+            "mig_asset_rollback_script_v1",
+            "mig_asset_validation_script_v1"
+          ]
+        },
+        {
+          "step": 2,
+          "entity": "User",
+          "depends_on": [],
+          "artifacts": [
+            "mig_user_migration_script_v1",
+            "mig_user_rollback_script_v1",
+            "mig_user_validation_script_v1"
+          ]
+        },
+        {
+          "step": 3,
+          "entity": "WorkOrder",
+          "depends_on": [
+            "Assets",
+            "Users"
+          ],
+          "artifacts": [
+            "mig_workorder_migration_script_v1",
+            "mig_workorder_rollback_script_v1",
+            "mig_workorder_validation_script_v1"
+          ]
+        }
+      ]
+    },
+    "summary": {
+      "migration_artifact_count": 3,
+      "rollback_artifact_count": 3,
+      "validation_artifact_count": 3
+    },
+    "llm_trace": {
+      "model": "google.gemma-3-27b-it",
+      "prompt_id": "migration.generator.v4",
+      "temperature": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": 69027
+    },
+    "status": "READY_FOR_REVIEW",
+    "orchestrator": {
+      "path": "outputs/migration/duckdb/run_migration_2eb32c65-26b5-4c5d-890d-c00979589bda.py",
+      "sha256": "01dc738c3143da9e16ac996aff51dd36b2f42691f704faabd399047e35266863"
+    }
+  },
+  "review": {
+    "status": "REJECTED",
+    "risk_level": "HIGH",
+    "pass_results": {
+      "pass1": {
+        "status": "REJECTED",
+        "risk_level": "HIGH",
+        "issues": [
+          {
+            "entity": "Asset",
+            "artifact_type": "migration_script",
+            "severity": "HIGH",
+            "type": "Data Quality",
+            "description": "The migration script does not enforce the NOT NULL constraint on purchase_date and cost. The INSERT statement includes a WHERE clause that filters out rows where purchase_date or cost are NULL, but this doesn't prevent NULL values from being inserted if the source data changes.",
+            "line_reference": "32-38",
+            "pass": "pass1"
+          },
+          {
+            "entity": "Asset",
+            "artifact_type": "validation_script",
+            "severity": "MEDIUM",
+            "type": "Validation Rule",
+            "description": "The validation script checks for c_asset_id REGEX, asset_type and status NOT NULL, and cost >= 0. However, it does not validate the foreign key relationship with the Location table as specified in the FIELD MAPPINGS.",
+            "line_reference": "22-31",
+            "pass": "pass1"
+          },
+          {
+            "entity": "WorkOrder",
+            "artifact_type": "migration_script",
+            "severity": "HIGH",
+            "type": "Code Quality",
+            "description": "The migration script uses a hardcoded path for SOURCE_FILES. It should be read from the environment.",
+            "line_reference": "SOURCE_FILES = os.environ.get(\"SOURCE_FILES\", \"D:\\\\onboardingIQ\\\\Onboardiq\\\\data\\\\sample\\\\work_orders.csv,D:\\\\onboardingIQ\\\\Onboardiq\\\\data\\\\sample\\\\workorders01.csv\").split(\",\")",
+            "pass": "pass1"
+          },
+          {
+            "entity": "WorkOrder",
+            "artifact_type": "migration_script",
+            "severity": "MEDIUM",
+            "type": "Code Quality",
+            "description": "The migration script uses multi-line string concatenation for the INSERT statement. This is harder to read and maintain. Consider using a more readable approach like string formatting or a query builder.",
+            "line_reference": "con.execute(\"INSERT INTO WorkOrder (wo_id, asset_id, assigned_user, status, priority, created_date, closed_date, description)\" \n                    \"SELECT \\\n                        wo_id, \\\n                        asset_id, \\\n                        technician_ref, \\\n                        status, \\\n                        priority, \\\n                        created_date, \\\n                        closed_date, \\\n                        description \\\n                    FROM staging\")",
+            "pass": "pass1"
+          },
+          {
+            "entity": "WorkOrder",
+            "artifact_type": "validation_script",
+            "severity": "MEDIUM",
+            "type": "Validation",
+            "description": "The validation script checks for orphan records by querying the 'Assets' table. It handles the case where the 'Assets' table doesn't exist by logging a warning and skipping the validation. However, it's better to explicitly define a dependency on the 'Assets' table and fail the validation if it's missing, as the FK validation is crucial.",
+            "line_reference": "try:\n            orphan_count = con.execute(\"SELECT COUNT(*) FROM WorkOrder WHERE asset_id NOT IN (SELECT asset_id FROM Assets)\").fetchone()[0]\n            assert orphan_count == 0, f\"Found {orphan_count} orphan records (broken FK references)\"\n        except duckdb.CatalogException:",
+            "pass": "pass1"
+          },
+          {
+            "entity": "User",
+            "artifact_type": "validation_script",
+            "severity": "CRITICAL",
+            "type": "Configuration Error",
+            "description": "DUCKDB_PATH is not read from os.environ in the validation script. It uses `config.DUCKDB_PATH` which is undefined.",
+            "line_reference": "11",
+            "pass": "pass1"
+          },
+          {
+            "entity": "User",
+            "artifact_type": "migration_script",
+            "severity": "MEDIUM",
+            "type": "Code Style",
+            "description": "The source file path is hardcoded. It should be read from an environment variable or configuration.",
+            "line_reference": "23",
+            "pass": "pass1"
+          }
+        ],
+        "fix_required": [
+          {
+            "entity": "Asset",
+            "artifact_type": "migration_script",
+            "instruction": "Modify the INSERT statement to explicitly handle NULL values for purchase_date and cost, either by providing default values or rejecting the row.  Consider using COALESCE to provide default values or adding a check to ensure these fields are not NULL before insertion."
+          },
+          {
+            "entity": "Asset",
+            "artifact_type": "validation_script",
+            "instruction": "Add a validation rule to check the foreign key relationship between Asset.b_location_id and Location.location_id. This could involve querying the Location table to ensure that the b_location_id exists."
+          },
+          {
+            "entity": "WorkOrder",
+            "artifact_type": "migration_script",
+            "instruction": "Replace the hardcoded path in SOURCE_FILES with a value read from the environment using os.environ.get()."
+          },
+          {
+            "entity": "WorkOrder",
+            "artifact_type": "migration_script",
+            "instruction": "Refactor the INSERT statement to use a more readable approach, such as string formatting or a query builder."
+          },
+          {
+            "entity": "WorkOrder",
+            "artifact_type": "validation_script",
+            "instruction": "Ensure the 'Assets' table exists before performing FK validation. If it doesn't exist, raise an exception instead of logging a warning and skipping the validation."
+          },
+          {
+            "entity": "User",
+            "artifact_type": "validation_script",
+            "instruction": "Replace `config.DUCKDB_PATH` with `os.environ.get(\"DUCKDB_PATH\")` to read the DuckDB path from the environment."
+          },
+          {
+            "entity": "User",
+            "artifact_type": "migration_script",
+            "instruction": "Read the source file path from an environment variable or configuration instead of hardcoding it."
+          }
+        ]
+      },
+      "pass2": {
+        "status": "APPROVED",
+        "risk_level": "LOW",
+        "issues": [],
+        "fix_required": [],
+        "summary": "Cross-entity consistency check passed. Wave ordering is respected, no circular dependencies were found, and all FK references point to existing tables based on the provided specification and plan. The specification only includes 'Asset' but the migration plan includes 'Users' and 'WorkOrders'. This is acceptable as long as the migration scripts for 'Users' and 'WorkOrders' are not provided."
+      },
+      "pass3": {
+        "status": "APPROVED",
+        "risk_level": "LOW",
+        "issues": [],
+        "fix_required": [],
+        "summary": "Orchestrator script validated successfully. All checks passed: file existence, wave order, fail-fast mechanism, DUCKDB_PATH validation, environment variable forwarding, logging, and absence of hardcoded values."
+      }
+    },
+    "issues": [
+      {
+        "entity": "Asset",
+        "artifact_type": "migration_script",
+        "severity": "HIGH",
+        "type": "Data Quality",
+        "description": "The migration script does not enforce the NOT NULL constraint on purchase_date and cost. The INSERT statement includes a WHERE clause that filters out rows where purchase_date or cost are NULL, but this doesn't prevent NULL values from being inserted if the source data changes.",
+        "line_reference": "32-38",
+        "pass": "pass1"
+      },
+      {
+        "entity": "Asset",
+        "artifact_type": "validation_script",
+        "severity": "MEDIUM",
+        "type": "Validation Rule",
+        "description": "The validation script checks for c_asset_id REGEX, asset_type and status NOT NULL, and cost >= 0. However, it does not validate the foreign key relationship with the Location table as specified in the FIELD MAPPINGS.",
+        "line_reference": "22-31",
+        "pass": "pass1"
+      },
+      {
+        "entity": "WorkOrder",
+        "artifact_type": "migration_script",
+        "severity": "HIGH",
+        "type": "Code Quality",
+        "description": "The migration script uses a hardcoded path for SOURCE_FILES. It should be read from the environment.",
+        "line_reference": "SOURCE_FILES = os.environ.get(\"SOURCE_FILES\", \"D:\\\\onboardingIQ\\\\Onboardiq\\\\data\\\\sample\\\\work_orders.csv,D:\\\\onboardingIQ\\\\Onboardiq\\\\data\\\\sample\\\\workorders01.csv\").split(\",\")",
+        "pass": "pass1"
+      },
+      {
+        "entity": "WorkOrder",
+        "artifact_type": "migration_script",
+        "severity": "MEDIUM",
+        "type": "Code Quality",
+        "description": "The migration script uses multi-line string concatenation for the INSERT statement. This is harder to read and maintain. Consider using a more readable approach like string formatting or a query builder.",
+        "line_reference": "con.execute(\"INSERT INTO WorkOrder (wo_id, asset_id, assigned_user, status, priority, created_date, closed_date, description)\" \n                    \"SELECT \\\n                        wo_id, \\\n                        asset_id, \\\n                        technician_ref, \\\n                        status, \\\n                        priority, \\\n                        created_date, \\\n                        closed_date, \\\n                        description \\\n                    FROM staging\")",
+        "pass": "pass1"
+      },
+      {
+        "entity": "WorkOrder",
+        "artifact_type": "validation_script",
+        "severity": "MEDIUM",
+        "type": "Validation",
+        "description": "The validation script checks for orphan records by querying the 'Assets' table. It handles the case where the 'Assets' table doesn't exist by logging a warning and skipping the validation. However, it's better to explicitly define a dependency on the 'Assets' table and fail the validation if it's missing, as the FK validation is crucial.",
+        "line_reference": "try:\n            orphan_count = con.execute(\"SELECT COUNT(*) FROM WorkOrder WHERE asset_id NOT IN (SELECT asset_id FROM Assets)\").fetchone()[0]\n            assert orphan_count == 0, f\"Found {orphan_count} orphan records (broken FK references)\"\n        except duckdb.CatalogException:",
+        "pass": "pass1"
+      },
+      {
+        "entity": "User",
+        "artifact_type": "validation_script",
+        "severity": "CRITICAL",
+        "type": "Configuration Error",
+        "description": "DUCKDB_PATH is not read from os.environ in the validation script. It uses `config.DUCKDB_PATH` which is undefined.",
+        "line_reference": "11",
+        "pass": "pass1"
+      },
+      {
+        "entity": "User",
+        "artifact_type": "migration_script",
+        "severity": "MEDIUM",
+        "type": "Code Style",
+        "description": "The source file path is hardcoded. It should be read from an environment variable or configuration.",
+        "line_reference": "23",
+        "pass": "pass1"
+      }
+    ],
+    "fix_required": [
+      {
+        "entity": "Asset",
+        "artifact_type": "migration_script",
+        "instruction": "Modify the INSERT statement to explicitly handle NULL values for purchase_date and cost, either by providing default values or rejecting the row.  Consider using COALESCE to provide default values or adding a check to ensure these fields are not NULL before insertion."
+      },
+      {
+        "entity": "Asset",
+        "artifact_type": "validation_script",
+        "instruction": "Add a validation rule to check the foreign key relationship between Asset.b_location_id and Location.location_id. This could involve querying the Location table to ensure that the b_location_id exists."
+      },
+      {
+        "entity": "WorkOrder",
+        "artifact_type": "migration_script",
+        "instruction": "Replace the hardcoded path in SOURCE_FILES with a value read from the environment using os.environ.get()."
+      },
+      {
+        "entity": "WorkOrder",
+        "artifact_type": "migration_script",
+        "instruction": "Refactor the INSERT statement to use a more readable approach, such as string formatting or a query builder."
+      },
+      {
+        "entity": "WorkOrder",
+        "artifact_type": "validation_script",
+        "instruction": "Ensure the 'Assets' table exists before performing FK validation. If it doesn't exist, raise an exception instead of logging a warning and skipping the validation."
+      },
+      {
+        "entity": "User",
+        "artifact_type": "validation_script",
+        "instruction": "Replace `config.DUCKDB_PATH` with `os.environ.get(\"DUCKDB_PATH\")` to read the DuckDB path from the environment."
+      },
+      {
+        "entity": "User",
+        "artifact_type": "migration_script",
+        "instruction": "Read the source file path from an environment variable or configuration instead of hardcoding it."
+      }
+    ],
+    "summary": "Pass 1 (REJECTED):  | Pass 2 (APPROVED): Cross-entity consistency check passed. Wave ordering is respected, no circular dependencies were found, and all FK references point to existing tables based on the provided specification and plan. The specification only includes 'Asset' but the migration plan includes 'Users' and 'WorkOrders'. This is acceptable as long as the migration scripts for 'Users' and 'WorkOrders' are not provided. | Pass 3 (APPROVED): Orchestrator script validated successfully. All checks passed: file existence, wave order, fail-fast mechanism, DUCKDB_PATH validation, environment variable forwarding, logging, and absence of hardcoded values.",
+    "llm_trace": {
+      "model": "google.gemma-3-27b-it",
+      "prompt_id": "migration.reviewer.v2",
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": 40300
+    }
+  },
+  "repair": {
+    "status": "COMPLETED",
+    "fixed_files": 8,
+    "repaired_artifacts": [
+      "mig_asset_rollback_script_v1",
+      "mig_asset_validation_script_v1",
+      "mig_workorder_migration_script_v1",
+      "mig_workorder_rollback_script_v1",
+      "mig_workorder_validation_script_v1",
+      "mig_user_rollback_script_v1",
+      "mig_user_validation_script_v1",
+      "mig_user_migration_script_v1"
+    ],
+    "issues": [],
+    "llm_trace": {
+      "model": "google.gemma-3-27b-it",
+      "prompt_id": "migration.repair.v1",
+      "temperature": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": 77876
+    }
+  },
+  "execution": {},
+  "validation": {},
+  "approval": {},
+  "audit": {
+    "events": [
+      {
+        "agent": "MigrationCodeGenerator",
+        "action": "7a_generate",
+        "status": "completed",
+        "timestamp": "2026-06-14T11:30:27.824073+00:00",
+        "details": {
+          "target": "duckdb",
+          "artifact_count": 9,
+          "entities": [
+            "Asset",
+            "User",
+            "WorkOrder"
+          ]
+        }
+      },
+      {
+        "agent": "MigrationCodeGenerator",
+        "action": "7b_orchestrator",
+        "status": "completed",
+        "timestamp": "2026-06-14T11:30:27.827729+00:00",
+        "details": {
+          "path": "outputs/migration/duckdb/run_migration_2eb32c65-26b5-4c5d-890d-c00979589bda.py",
+          "steps": 3
+        }
+      },
+      {
+        "agent": "MigrationCodeGenerator",
+        "action": "7a_generate",
+        "status": "completed",
+        "timestamp": "2026-06-14T11:33:08.218423+00:00",
+        "details": {
+          "target": "duckdb",
+          "artifact_count": 9,
+          "entities": [
+            "Asset",
+            "User",
+            "WorkOrder"
+          ]
+        }
+      },
+      {
+        "agent": "MigrationCodeGenerator",
+        "action": "7b_orchestrator",
+        "status": "completed",
+        "timestamp": "2026-06-14T11:33:08.220950+00:00",
+        "details": {
+          "path": "outputs/migration/duckdb/run_migration_2eb32c65-26b5-4c5d-890d-c00979589bda.py",
+          "steps": 3
+        }
+      },
+      {
+        "agent": "MigrationCodeGenerator",
+        "action": "7a_generate",
+        "status": "completed",
+        "timestamp": "2026-06-14T12:12:17.255458+00:00",
+        "details": {
+          "target": "duckdb",
+          "artifact_count": 9,
+          "entities": [
+            "Asset",
+            "User",
+            "WorkOrder"
+          ]
+        }
+      },
+      {
+        "agent": "MigrationCodeGenerator",
+        "action": "7b_orchestrator",
+        "status": "completed",
+        "timestamp": "2026-06-14T12:12:17.264800+00:00",
+        "details": {
+          "path": "outputs/migration/duckdb/run_migration_2eb32c65-26b5-4c5d-890d-c00979589bda.py",
+          "steps": 3
+        }
+      },
+      {
+        "agent": "MigrationReviewer",
+        "action": "review_completed",
+        "status": "completed",
+        "timestamp": "2026-06-14T12:12:58.260200+00:00",
+        "details": {
+          "status": "REJECTED",
+          "risk_level": "HIGH",
+          "total_issues": 10,
+          "pass1_status": "REJECTED",
+          "pass2_status": "APPROVED",
+          "pass3_status": "APPROVED"
+        }
+      },
+      {
+        "agent": "MigrationRepairAgent",
+        "action": "repair_artifacts",
+        "status": "completed",
+        "timestamp": "2026-06-14T12:14:32.233117+00:00",
+        "details": {
+          "status": "COMPLETED",
+          "fixed_files_count": 9,
+          "issues_count": 0
+        }
+      },
+      {
+        "agent": "MigrationReviewer",
+        "action": "review_completed",
+        "status": "completed",
+        "timestamp": "2026-06-14T12:15:06.842185+00:00",
+        "details": {
+          "status": "REJECTED",
+          "risk_level": "HIGH",
+          "total_issues": 8,
+          "pass1_status": "REJECTED",
+          "pass2_status": "APPROVED",
+          "pass3_status": "APPROVED"
+        }
+      },
+      {
+        "agent": "MigrationRepairAgent",
+        "action": "repair_artifacts",
+        "status": "completed",
+        "timestamp": "2026-06-14T12:16:24.778607+00:00",
+        "details": {
+          "status": "COMPLETED",
+          "fixed_files_count": 8,
+          "issues_count": 0
+        }
+      },
+      {
+        "agent": "MigrationReviewer",
+        "action": "review_completed",
+        "status": "completed",
+        "timestamp": "2026-06-14T12:17:05.122191+00:00",
+        "details": {
+          "status": "REJECTED",
+          "risk_level": "HIGH",
+          "total_issues": 7,
+          "pass1_status": "REJECTED",
+          "pass2_status": "APPROVED",
+          "pass3_status": "APPROVED"
+        }
+      }
+    ]
+  },
+  "runtime_requirements": {
+    "connection": "Read all connection parameters from environment variables. Never hardcode paths.",
+    "duckdb_path": "Connect using duckdb.connect(config.DUCKDB_PATH). DUCKDB_PATH must be set.",
+    "source_data_dir": "Read all source files from context['source_files']",
+    "idempotency": "All scripts must be safely re-runnable.",
+    "error_handling": "Capture and log errors with stage classification. Always close connection in finally block."
+  },
+  "operational_requirements": {
+    "logging": "Emit structured JSON log lines for every lifecycle stage.",
+    "stages": [
+      "ingestion_start",
+      "ingestion_end",
+      "transform_start",
+      "transform_end",
+      "load_start",
+      "load_end",
+      "validation_start",
+      "validation_end"
+    ],
+    "metrics": [
+      "run_id",
+      "entity",
+      "stage",
+      "status",
+      "duration_ms",
+      "rows_read",
+      "rows_written",
+      "error_code",
+      "error_message"
+    ],
+    "observability": "Include row-count assertions and stage markers legible to downstream monitoring.",
+    "log_format": "JSON",
+    "log_destination": "stdout"
+  }
+}

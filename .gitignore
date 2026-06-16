@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+.antigravitycli/
+.env
+.nicegui/
+.pytest_cache/

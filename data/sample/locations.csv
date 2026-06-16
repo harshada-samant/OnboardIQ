@@ -1,0 +1,5 @@
+location_key,loc_name,parent_ref,site,building,floor
+LOC01,Pump Room A,SITE01,North Site,Building 1,Ground
+LOC02,Compressor Bay,SITE01,North Site,Building 1,Ground
+LOC03,Control Room,SITE02,South Site,Building 2,First
+LOC04,Storage Tank Area,SITE02,South Site,Building 3,Ground

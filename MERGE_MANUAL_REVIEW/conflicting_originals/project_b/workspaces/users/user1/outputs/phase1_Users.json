@@ -1,0 +1,91 @@
+{
+  "entity_name": "Users",
+  "source_file": "Users.csv",
+  "row_count": 5,
+  "primary_key": "user_id",
+  "fields": [
+    {
+      "name": "user_id",
+      "dtype": "str",
+      "role": "primary_key",
+      "null_pct": 0.0,
+      "unique_count": 5
+    },
+    {
+      "name": "name",
+      "dtype": "str",
+      "role": "foreign_key",
+      "null_pct": 0.0,
+      "unique_count": 5
+    },
+    {
+      "name": "role",
+      "dtype": "str",
+      "role": "foreign_key",
+      "null_pct": 0.0,
+      "unique_count": 4
+    },
+    {
+      "name": "email",
+      "dtype": "str",
+      "role": "foreign_key",
+      "null_pct": 20.0,
+      "unique_count": 4,
+      "fk_pattern": "USR-xx"
+    },
+    {
+      "name": "department",
+      "dtype": "str",
+      "role": "foreign_key",
+      "null_pct": 0.0,
+      "unique_count": 4
+    },
+    {
+      "name": "active",
+      "dtype": "bool",
+      "role": "foreign_key",
+      "null_pct": 0.0,
+      "unique_count": 2
+    }
+  ],
+  "fk_candidates": [
+    {
+      "field": "email",
+      "pattern": "USR-xx",
+      "sample_values": [
+        "alice@company.com",
+        "bob@company.com",
+        "carol@company.com",
+        "eve@company.com"
+      ],
+      "reasoning": "Email addresses follow a consistent pattern, likely referencing a Users table"
+    },
+    {
+      "field": "department",
+      "pattern": "USR-xx",
+      "sample_values": [
+        "Maintenance",
+        "Engineering",
+        "Maintenance",
+        "Operations",
+        "Management"
+      ],
+      "reasoning": "Department names follow a consistent pattern, likely referencing a Users table"
+    },
+    {
+      "field": "active",
+      "pattern": "USR-xx",
+      "sample_values": [
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "reasoning": "Active status follows a consistent pattern, likely referencing a Users table"
+    }
+  ],
+  "data_quality_notes": [
+    "email has 20% nulls"
+  ]
+}

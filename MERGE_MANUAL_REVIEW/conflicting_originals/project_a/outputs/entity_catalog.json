@@ -1,0 +1,223 @@
+{
+  "entities": [
+    {
+      "entity_name": "Assets",
+      "source_file": "Assets",
+      "row_count": 10,
+      "primary_key": "asset_no",
+      "fields": [
+        {
+          "name": "asset_no",
+          "dtype": "str",
+          "role": "primary_key",
+          "null_pct": 0.0,
+          "unique_count": 10
+        },
+        {
+          "name": "loc_code",
+          "dtype": "str",
+          "role": "foreign_key",
+          "null_pct": 0.0,
+          "unique_count": 5,
+          "fk_pattern": "LOC-xx"
+        },
+        {
+          "name": "asset_name",
+          "dtype": "str",
+          "role": "regular",
+          "null_pct": 0.0,
+          "unique_count": 10
+        },
+        {
+          "name": "status",
+          "dtype": "str",
+          "role": "regular",
+          "null_pct": 0.0,
+          "unique_count": 3
+        },
+        {
+          "name": "purchase_date",
+          "dtype": "str",
+          "role": "regular",
+          "null_pct": 0.0,
+          "unique_count": 10
+        },
+        {
+          "name": "cost",
+          "dtype": "str",
+          "role": "regular",
+          "null_pct": 0.0,
+          "unique_count": 10
+        }
+      ],
+      "fk_candidates": [
+        {
+          "field": "loc_code",
+          "pattern": "LOC-xx",
+          "sample_values": [
+            "LOC-01",
+            "LOC-02"
+          ],
+          "reasoning": "Values follow a location code pattern, likely references a Locations table"
+        }
+      ],
+      "data_quality_notes": [
+        "loc_code has 50% duplicates (unique_count < row_count)"
+      ],
+      "relationships": [
+        {
+          "from_field": "loc_code",
+          "to_entity": "Locations",
+          "to_field": "parent_ref",
+          "confidence": "MEDIUM",
+          "reasoning": "Assets.loc_code pattern LOC-xx matches Locations.parent_ref pattern SITE-xx"
+        }
+      ]
+    },
+    {
+      "entity_name": "Locations",
+      "source_file": "Locations.csv",
+      "row_count": 4,
+      "primary_key": "location_key",
+      "fields": [
+        {
+          "name": "location_key",
+          "dtype": "str",
+          "role": "primary_key",
+          "null_pct": 0.0,
+          "unique_count": 4
+        },
+        {
+          "name": "loc_name",
+          "dtype": "str",
+          "role": "informational",
+          "null_pct": 0.0,
+          "unique_count": 4
+        },
+        {
+          "name": "parent_ref",
+          "dtype": "str",
+          "role": "foreign_key",
+          "null_pct": 0.0,
+          "unique_count": 2,
+          "fk_pattern": "SITE-xx"
+        },
+        {
+          "name": "site",
+          "dtype": "str",
+          "role": "informational",
+          "null_pct": 0.0,
+          "unique_count": 2
+        },
+        {
+          "name": "building",
+          "dtype": "str",
+          "role": "informational",
+          "null_pct": 0.0,
+          "unique_count": 3
+        },
+        {
+          "name": "floor",
+          "dtype": "str",
+          "role": "informational",
+          "null_pct": 0.0,
+          "unique_count": 2
+        }
+      ],
+      "fk_candidates": [
+        {
+          "field": "parent_ref",
+          "pattern": "SITE-xx",
+          "sample_values": [
+            "SITE01",
+            "SITE02"
+          ],
+          "reasoning": "Values follow a site reference pattern, likely references a Sites table"
+        }
+      ],
+      "data_quality_notes": [],
+      "relationships": []
+    },
+    {
+      "entity_name": "Users",
+      "source_file": "Users",
+      "row_count": 5,
+      "primary_key": "user_id",
+      "fields": [
+        {
+          "name": "user_id",
+          "dtype": "str",
+          "role": "primary_key",
+          "null_pct": 0.0,
+          "unique_count": 5
+        },
+        {
+          "name": "name",
+          "dtype": "str",
+          "role": "regular",
+          "null_pct": 0.0,
+          "unique_count": 5
+        },
+        {
+          "name": "role",
+          "dtype": "str",
+          "role": "regular",
+          "null_pct": 0.0,
+          "unique_count": 4
+        },
+        {
+          "name": "email",
+          "dtype": "str",
+          "role": "regular",
+          "null_pct": 0.0,
+          "unique_count": 5
+        },
+        {
+          "name": "department",
+          "dtype": "str",
+          "role": "regular",
+          "null_pct": 0.0,
+          "unique_count": 4
+        },
+        {
+          "name": "active",
+          "dtype": "str",
+          "role": "regular",
+          "null_pct": 0.0,
+          "unique_count": 2
+        }
+      ],
+      "fk_candidates": [
+        {
+          "field": "email",
+          "pattern": null,
+          "sample_values": [
+            "alice@company.com",
+            "bob@company.com",
+            "carol@company.com",
+            "",
+            "eve@company.com"
+          ],
+          "reasoning": "No clear pattern found in email values"
+        }
+      ],
+      "data_quality_notes": [
+        "department has 20% less unique values than rows",
+        "active has 60% less unique values than rows"
+      ],
+      "relationships": []
+    }
+  ],
+  "potential_duplicate_entities": [],
+  "summary": {
+    "total_entities": 3,
+    "total_fields": 18,
+    "relationships_detected": 1,
+    "duplicate_entity_pairs": 0,
+    "failed_tables": []
+  },
+  "_meta": {
+    "saved_at": "2026-06-13T10:27:37.433274",
+    "filename": "entity_catalog.json"
+  }
+}

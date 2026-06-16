@@ -1,0 +1,241 @@
+{
+  "entity_specification": {
+    "Asset": [
+      {
+        "source_field": "asset_no",
+        "target_field": "c_asset_id",
+        "data_type": "VARCHAR(50)",
+        "nullable": false,
+        "validation_rule": "IS_UNIQUE",
+        "transformation": "uppercase(trim(asset_no))",
+        "business_constraint": "PRIMARY KEY"
+      },
+      {
+        "source_field": "asset_name",
+        "target_field": "asset_name",
+        "data_type": "VARCHAR(255)",
+        "nullable": false,
+        "validation_rule": "",
+        "transformation": "direct",
+        "business_constraint": "NOT NULL"
+      },
+      {
+        "source_field": "loc_code",
+        "target_field": "b_location_id",
+        "data_type": "VARCHAR(50)",
+        "nullable": true,
+        "validation_rule": "",
+        "transformation": "direct",
+        "business_constraint": ""
+      },
+      {
+        "source_field": "asset_type",
+        "target_field": "asset_type",
+        "data_type": "VARCHAR(100)",
+        "nullable": false,
+        "validation_rule": "",
+        "transformation": "direct",
+        "business_constraint": "NOT NULL"
+      },
+      {
+        "source_field": "status",
+        "target_field": "status",
+        "data_type": "VARCHAR(50)",
+        "nullable": false,
+        "validation_rule": "",
+        "transformation": "direct",
+        "business_constraint": "NOT NULL"
+      },
+      {
+        "source_field": "cost",
+        "target_field": "cost",
+        "data_type": "DECIMAL(12,2)",
+        "nullable": false,
+        "validation_rule": ">= 0",
+        "transformation": "cast(cost, decimal)",
+        "business_constraint": ""
+      }
+    ],
+    "WorkOrder": [
+      {
+        "source_field": "wo_id",
+        "target_field": "wo_id",
+        "data_type": "VARCHAR(50)",
+        "nullable": false,
+        "validation_rule": "IS_UNIQUE",
+        "transformation": "direct",
+        "business_constraint": "PRIMARY KEY"
+      },
+      {
+        "source_field": "equip_id",
+        "target_field": "asset_id",
+        "data_type": "VARCHAR(50)",
+        "nullable": false,
+        "validation_rule": "FOREIGN_KEY(Asset.c_asset_id)",
+        "transformation": "direct",
+        "business_constraint": "NOT NULL"
+      },
+      {
+        "source_field": "status",
+        "target_field": "status",
+        "data_type": "VARCHAR(50)",
+        "nullable": false,
+        "validation_rule": "",
+        "transformation": "direct",
+        "business_constraint": "NOT NULL"
+      },
+      {
+        "source_field": "priority",
+        "target_field": "priority",
+        "data_type": "VARCHAR(50)",
+        "nullable": true,
+        "validation_rule": "",
+        "transformation": "direct",
+        "business_constraint": ""
+      },
+      {
+        "source_field": "created_date",
+        "target_field": "created_date",
+        "data_type": "DATE",
+        "nullable": false,
+        "validation_rule": "IS_DATE",
+        "transformation": "cast(created_date, date)",
+        "business_constraint": "NOT NULL"
+      },
+      {
+        "source_field": "closed_date",
+        "target_field": "closed_date",
+        "data_type": "DATE",
+        "nullable": true,
+        "validation_rule": "IS_DATE",
+        "transformation": "cast(closed_date, date)",
+        "business_constraint": ""
+      },
+      {
+        "source_field": "description",
+        "target_field": "description",
+        "data_type": "VARCHAR(255)",
+        "nullable": true,
+        "validation_rule": "",
+        "transformation": "direct",
+        "business_constraint": ""
+      }
+    ],
+    "User": [
+      {
+        "source_field": "user_id",
+        "target_field": "user_id",
+        "data_type": "VARCHAR(50)",
+        "nullable": false,
+        "validation_rule": "IS_UNIQUE",
+        "transformation": "direct",
+        "business_constraint": "PRIMARY KEY"
+      },
+      {
+        "source_field": "name",
+        "target_field": "full_name",
+        "data_type": "VARCHAR(255)",
+        "nullable": false,
+        "validation_rule": "",
+        "transformation": "direct",
+        "business_constraint": "NOT NULL"
+      },
+      {
+        "source_field": "role",
+        "target_field": "role",
+        "data_type": "VARCHAR(100)",
+        "nullable": true,
+        "validation_rule": "",
+        "transformation": "direct",
+        "business_constraint": ""
+      },
+      {
+        "source_field": "email",
+        "target_field": "email",
+        "data_type": "VARCHAR(255)",
+        "nullable": true,
+        "validation_rule": "",
+        "transformation": "direct",
+        "business_constraint": ""
+      },
+      {
+        "source_field": "department",
+        "target_field": "department",
+        "data_type": "VARCHAR(100)",
+        "nullable": true,
+        "validation_rule": "",
+        "transformation": "direct",
+        "business_constraint": ""
+      },
+      {
+        "source_field": "active",
+        "target_field": "is_active",
+        "data_type": "BOOLEAN",
+        "nullable": false,
+        "validation_rule": "",
+        "transformation": "direct",
+        "business_constraint": ""
+      }
+    ],
+    "Location": [
+      {
+        "source_field": "location_key",
+        "target_field": "location_id",
+        "data_type": "VARCHAR(50)",
+        "nullable": false,
+        "validation_rule": "IS_UNIQUE",
+        "transformation": "direct",
+        "business_constraint": "PRIMARY KEY"
+      },
+      {
+        "source_field": "loc_name",
+        "target_field": "location_name",
+        "data_type": "VARCHAR(255)",
+        "nullable": false,
+        "validation_rule": "",
+        "transformation": "direct",
+        "business_constraint": "NOT NULL"
+      },
+      {
+        "source_field": "parent_ref",
+        "target_field": "parent_id",
+        "data_type": "VARCHAR(50)",
+        "nullable": true,
+        "validation_rule": "FOREIGN_KEY(Location.location_id)",
+        "transformation": "direct",
+        "business_constraint": ""
+      },
+      {
+        "source_field": "site",
+        "target_field": "site",
+        "data_type": "VARCHAR(100)",
+        "nullable": true,
+        "validation_rule": "",
+        "transformation": "direct",
+        "business_constraint": ""
+      },
+      {
+        "source_field": "building",
+        "target_field": "building",
+        "data_type": "VARCHAR(100)",
+        "nullable": true,
+        "validation_rule": "",
+        "transformation": "direct",
+        "business_constraint": ""
+      },
+      {
+        "source_field": "floor",
+        "target_field": "floor",
+        "data_type": "VARCHAR(50)",
+        "nullable": true,
+        "validation_rule": "",
+        "transformation": "direct",
+        "business_constraint": ""
+      }
+    ]
+  },
+  "_meta": {
+    "saved_at": "2026-06-16T13:13:49.736538",
+    "filename": "migration_spec.json"
+  }
+}

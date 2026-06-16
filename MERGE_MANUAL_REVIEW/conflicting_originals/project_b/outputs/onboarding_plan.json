@@ -1,0 +1,435 @@
+{
+  "readiness_score": 80.1,
+  "total_waves": 2,
+  "has_circular_dependencies": false,
+  "waves": [
+    {
+      "wave_number": 1,
+      "entities": [
+        "Assets",
+        "Users"
+      ],
+      "risk_items": [
+        {
+          "severity": "MEDIUM",
+          "entity": "Assets",
+          "title": "Field 'loc_code' contains high null percentage (20.0%).",
+          "root_cause": "High null values in the 'loc_code' field indicate potential data quality issues in the source system.",
+          "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "Assets",
+          "title": "Field 'status' contains high null percentage (10.0%).",
+          "root_cause": "High null values in the 'status' field suggest missing or incomplete data in the source system.",
+          "impact": "Check type NULL_CHECK failed on field 'status'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "Users",
+          "title": "Field 'email' contains high null percentage (20.0%).",
+          "root_cause": "High null values in the 'email' field indicate potential data quality issues in the source system.",
+          "impact": "Check type NULL_CHECK failed on field 'email'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "Users",
+          "title": "Unresolved FK candidate(s): ['email']",
+          "root_cause": "The 'email' field is identified as a potential foreign key but lacks a corresponding parent entity.",
+          "impact": "These fields look like foreign keys but no matching parent entity was found.",
+          "action": "Upload the referenced parent table or confirm the FK is to an external system."
+        }
+      ],
+      "csv_files": [
+        "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_01\\assets.csv",
+        "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_01\\users.csv"
+      ],
+      "tool_stack": [
+        "DuckDB",
+        "Pandas"
+      ],
+      "total_rows": 15,
+      "source_mode": "sql",
+      "description": "This wave migrates core asset and user data, focusing on establishing a foundational data set for the system. The entities are grouped together as they represent fundamental components of the organization's operational infrastructure.",
+      "migration_approach": "Full load to CSV, followed by data cleansing and validation to address high null percentages in key fields like location code and status.",
+      "risk_mitigations": [
+        "Implement data profiling to thoroughly analyze the null percentages and identify root causes.",
+        "Develop a data imputation strategy for 'loc_code' and 'status' using a combination of default values and business rules.",
+        "Validate the FK candidate 'email' against existing user records to ensure data integrity."
+      ]
+    },
+    {
+      "wave_number": 2,
+      "entities": [
+        "WorkOrders"
+      ],
+      "risk_items": [
+        {
+          "severity": "MEDIUM",
+          "entity": "WorkOrders",
+          "title": "Field 'closed_date' contains high null percentage (55.0%).",
+          "root_cause": "High null values in the 'closed_date' field suggest missing or incomplete data in the source system.",
+          "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "WorkOrders",
+          "title": "Unresolved FK candidate(s): ['status', 'priority', 'created_date', 'closed_date']",
+          "root_cause": "Multiple fields are identified as potential foreign keys without a linked parent entity.",
+          "impact": "These fields look like foreign keys but no matching parent entity was found.",
+          "action": "Upload the referenced parent table or confirm the FK is to an external system."
+        }
+      ],
+      "csv_files": [
+        "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_02\\workorders.csv"
+      ],
+      "tool_stack": [
+        "Pandas"
+      ],
+      "total_rows": 20,
+      "source_mode": "file",
+      "description": "This wave focuses on migrating WorkOrder data, a critical component for service management. The wave addresses data quality issues related to closed dates and foreign key relationships.",
+      "migration_approach": "Full load to CSV, with data cleansing to handle the high null percentage in 'closed_date' and subsequent validation of foreign key relationships.",
+      "risk_mitigations": [
+        "Investigate the reason for the high null percentage in 'closed_date' \u2013 potential data entry errors or system issues.",
+        "Establish a default 'closed_date' value for WorkOrders that have not been closed, based on business requirements.",
+        "Implement data quality checks to ensure consistency and accuracy of 'status', 'priority', 'created_date', and 'closed_date' fields."
+      ]
+    }
+  ],
+  "silver_waves": [
+    {
+      "wave_number": 1,
+      "entities": [
+        "Assets",
+        "Users"
+      ],
+      "risk_items": [
+        {
+          "severity": "MEDIUM",
+          "entity": "Assets",
+          "title": "Field 'loc_code' contains high null percentage (20.0%).",
+          "root_cause": "High null values in the 'loc_code' field indicate potential data quality issues in the source system.",
+          "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "Assets",
+          "title": "Field 'status' contains high null percentage (10.0%).",
+          "root_cause": "High null values in the 'status' field suggest missing or incomplete data in the source system.",
+          "impact": "Check type NULL_CHECK failed on field 'status'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "Users",
+          "title": "Field 'email' contains high null percentage (20.0%).",
+          "root_cause": "High null values in the 'email' field indicate potential data quality issues in the source system.",
+          "impact": "Check type NULL_CHECK failed on field 'email'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "Users",
+          "title": "Unresolved FK candidate(s): ['email']",
+          "root_cause": "The 'email' field is identified as a potential foreign key but lacks a corresponding parent entity.",
+          "impact": "These fields look like foreign keys but no matching parent entity was found.",
+          "action": "Upload the referenced parent table or confirm the FK is to an external system."
+        }
+      ],
+      "csv_files": [
+        "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_01\\assets.csv",
+        "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_01\\users.csv"
+      ],
+      "tool_stack": [
+        "DuckDB",
+        "Pandas"
+      ],
+      "total_rows": 15,
+      "source_mode": "sql",
+      "description": "This wave migrates core asset and user data, focusing on establishing a foundational data set for the system. The entities are grouped together as they represent fundamental components of the organization's operational infrastructure.",
+      "migration_approach": "Full load to CSV, followed by data cleansing and validation to address high null percentages in key fields like location code and status.",
+      "risk_mitigations": [
+        "Implement data profiling to thoroughly analyze the null percentages and identify root causes.",
+        "Develop a data imputation strategy for 'loc_code' and 'status' using a combination of default values and business rules.",
+        "Validate the FK candidate 'email' against existing user records to ensure data integrity."
+      ]
+    },
+    {
+      "wave_number": 2,
+      "entities": [
+        "WorkOrders"
+      ],
+      "risk_items": [
+        {
+          "severity": "MEDIUM",
+          "entity": "WorkOrders",
+          "title": "Field 'closed_date' contains high null percentage (55.0%).",
+          "root_cause": "High null values in the 'closed_date' field suggest missing or incomplete data in the source system.",
+          "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "WorkOrders",
+          "title": "Unresolved FK candidate(s): ['status', 'priority', 'created_date', 'closed_date']",
+          "root_cause": "Multiple fields are identified as potential foreign keys without a linked parent entity.",
+          "impact": "These fields look like foreign keys but no matching parent entity was found.",
+          "action": "Upload the referenced parent table or confirm the FK is to an external system."
+        }
+      ],
+      "csv_files": [
+        "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_02\\workorders.csv"
+      ],
+      "tool_stack": [
+        "Pandas"
+      ],
+      "total_rows": 20,
+      "source_mode": "file",
+      "description": "This wave focuses on migrating WorkOrder data, a critical component for service management. The wave addresses data quality issues related to closed dates and foreign key relationships.",
+      "migration_approach": "Full load to CSV, with data cleansing to handle the high null percentage in 'closed_date' and subsequent validation of foreign key relationships.",
+      "risk_mitigations": [
+        "Investigate the reason for the high null percentage in 'closed_date' \u2013 potential data entry errors or system issues.",
+        "Establish a default 'closed_date' value for WorkOrders that have not been closed, based on business requirements.",
+        "Implement data quality checks to ensure consistency and accuracy of 'status', 'priority', 'created_date', and 'closed_date' fields."
+      ]
+    }
+  ],
+  "bronze_silver_gold": {
+    "Bronze": {
+      "description": "Raw ingest layer \u2014 all source entities are captured as-is with no wave sequencing.",
+      "entities": [
+        "Assets",
+        "Users",
+        "WorkOrders"
+      ],
+      "source_entities": [
+        {
+          "entity_name": "Assets",
+          "status": "RAW"
+        },
+        {
+          "entity_name": "Users",
+          "status": "RAW"
+        },
+        {
+          "entity_name": "WorkOrders",
+          "status": "RAW"
+        }
+      ]
+    },
+    "Silver": {
+      "description": "Wave-sequenced transformation layer \u2014 entities are processed into CSV files in dependency order.",
+      "waves": [
+        {
+          "wave_number": 1,
+          "entities": [
+            "Assets",
+            "Users"
+          ],
+          "csv_files": [
+            "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_01\\assets.csv",
+            "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_01\\users.csv"
+          ],
+          "tool_stack": [
+            "DuckDB",
+            "Pandas"
+          ],
+          "total_rows": 15,
+          "source_mode": "sql",
+          "risk_items": [
+            {
+              "severity": "MEDIUM",
+              "entity": "Assets",
+              "title": "Field 'loc_code' contains high null percentage (20.0%).",
+              "root_cause": "High null values in the 'loc_code' field indicate potential data quality issues in the source system.",
+              "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "Assets",
+              "title": "Field 'status' contains high null percentage (10.0%).",
+              "root_cause": "High null values in the 'status' field suggest missing or incomplete data in the source system.",
+              "impact": "Check type NULL_CHECK failed on field 'status'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "Users",
+              "title": "Field 'email' contains high null percentage (20.0%).",
+              "root_cause": "High null values in the 'email' field indicate potential data quality issues in the source system.",
+              "impact": "Check type NULL_CHECK failed on field 'email'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "Users",
+              "title": "Unresolved FK candidate(s): ['email']",
+              "root_cause": "The 'email' field is identified as a potential foreign key but lacks a corresponding parent entity.",
+              "impact": "These fields look like foreign keys but no matching parent entity was found.",
+              "action": "Upload the referenced parent table or confirm the FK is to an external system."
+            }
+          ],
+          "description": "This wave migrates core asset and user data, focusing on establishing a foundational data set for the system. The entities are grouped together as they represent fundamental components of the organization's operational infrastructure.",
+          "migration_approach": "Full load to CSV, followed by data cleansing and validation to address high null percentages in key fields like location code and status.",
+          "risk_mitigations": [
+            "Implement data profiling to thoroughly analyze the null percentages and identify root causes.",
+            "Develop a data imputation strategy for 'loc_code' and 'status' using a combination of default values and business rules.",
+            "Validate the FK candidate 'email' against existing user records to ensure data integrity."
+          ]
+        },
+        {
+          "wave_number": 2,
+          "entities": [
+            "WorkOrders"
+          ],
+          "csv_files": [
+            "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_02\\workorders.csv"
+          ],
+          "tool_stack": [
+            "Pandas"
+          ],
+          "total_rows": 20,
+          "source_mode": "file",
+          "risk_items": [
+            {
+              "severity": "MEDIUM",
+              "entity": "WorkOrders",
+              "title": "Field 'closed_date' contains high null percentage (55.0%).",
+              "root_cause": "High null values in the 'closed_date' field suggest missing or incomplete data in the source system.",
+              "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "WorkOrders",
+              "title": "Unresolved FK candidate(s): ['status', 'priority', 'created_date', 'closed_date']",
+              "root_cause": "Multiple fields are identified as potential foreign keys without a linked parent entity.",
+              "impact": "These fields look like foreign keys but no matching parent entity was found.",
+              "action": "Upload the referenced parent table or confirm the FK is to an external system."
+            }
+          ],
+          "description": "This wave focuses on migrating WorkOrder data, a critical component for service management. The wave addresses data quality issues related to closed dates and foreign key relationships.",
+          "migration_approach": "Full load to CSV, with data cleansing to handle the high null percentage in 'closed_date' and subsequent validation of foreign key relationships.",
+          "risk_mitigations": [
+            "Investigate the reason for the high null percentage in 'closed_date' \u2013 potential data entry errors or system issues.",
+            "Establish a default 'closed_date' value for WorkOrders that have not been closed, based on business requirements.",
+            "Implement data quality checks to ensure consistency and accuracy of 'status', 'priority', 'created_date', and 'closed_date' fields."
+          ]
+        }
+      ],
+      "entities": [
+        "Assets",
+        "Users",
+        "WorkOrders"
+      ],
+      "csv_files": [
+        "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_01\\assets.csv",
+        "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_01\\users.csv",
+        "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_02\\workorders.csv"
+      ]
+    },
+    "Gold": {
+      "description": "Target load layer \u2014 Silver CSV outputs are loaded into the target database.",
+      "loads": [
+        {
+          "wave_number": 1,
+          "source_csv_files": [
+            "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_01\\assets.csv",
+            "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_01\\users.csv"
+          ],
+          "target_entities": [
+            "Assets",
+            "Users"
+          ],
+          "load_target": "target_db",
+          "load_strategy": "bulk load from Silver CSVs",
+          "risk_items": [
+            {
+              "severity": "MEDIUM",
+              "entity": "Assets",
+              "title": "Field 'loc_code' contains high null percentage (20.0%).",
+              "root_cause": "High null values in the 'loc_code' field indicate potential data quality issues in the source system.",
+              "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "Assets",
+              "title": "Field 'status' contains high null percentage (10.0%).",
+              "root_cause": "High null values in the 'status' field suggest missing or incomplete data in the source system.",
+              "impact": "Check type NULL_CHECK failed on field 'status'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "Users",
+              "title": "Field 'email' contains high null percentage (20.0%).",
+              "root_cause": "High null values in the 'email' field indicate potential data quality issues in the source system.",
+              "impact": "Check type NULL_CHECK failed on field 'email'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "Users",
+              "title": "Unresolved FK candidate(s): ['email']",
+              "root_cause": "The 'email' field is identified as a potential foreign key but lacks a corresponding parent entity.",
+              "impact": "These fields look like foreign keys but no matching parent entity was found.",
+              "action": "Upload the referenced parent table or confirm the FK is to an external system."
+            }
+          ]
+        },
+        {
+          "wave_number": 2,
+          "source_csv_files": [
+            "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_02\\workorders.csv"
+          ],
+          "target_entities": [
+            "WorkOrders"
+          ],
+          "load_target": "target_db",
+          "load_strategy": "bulk load from Silver CSVs",
+          "risk_items": [
+            {
+              "severity": "MEDIUM",
+              "entity": "WorkOrders",
+              "title": "Field 'closed_date' contains high null percentage (55.0%).",
+              "root_cause": "High null values in the 'closed_date' field suggest missing or incomplete data in the source system.",
+              "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "WorkOrders",
+              "title": "Unresolved FK candidate(s): ['status', 'priority', 'created_date', 'closed_date']",
+              "root_cause": "Multiple fields are identified as potential foreign keys without a linked parent entity.",
+              "impact": "These fields look like foreign keys but no matching parent entity was found.",
+              "action": "Upload the referenced parent table or confirm the FK is to an external system."
+            }
+          ]
+        }
+      ],
+      "target_entities": [
+        "Assets",
+        "Users",
+        "WorkOrders"
+      ],
+      "source_csv_files": [
+        "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_01\\assets.csv",
+        "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_01\\users.csv",
+        "D:\\onboardingIQ\\Onboardiq\\outputs\\silver\\wave_02\\workorders.csv"
+      ]
+    }
+  },
+  "degraded_mode": false,
+  "_meta": {
+    "saved_at": "2026-06-12T18:34:15.663088",
+    "filename": "onboarding_plan.json"
+  }
+}

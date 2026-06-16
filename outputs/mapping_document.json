@@ -1,0 +1,223 @@
+{
+  "mappings": [
+    {
+      "source_entity": "Assets",
+      "target_entity": "Asset",
+      "field_mappings": [
+        {
+          "source_field": "asset_no",
+          "target_field": "c_asset_id",
+          "confidence_score": 0.98,
+          "transformation_logic": "uppercase(trim(asset_no))",
+          "reasoning": "Direct semantic match. asset_no is the primary key of source Assets, maps to c_asset_id in target."
+        },
+        {
+          "source_field": "asset_name",
+          "target_field": "asset_name",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct name match."
+        },
+        {
+          "source_field": "loc_code",
+          "target_field": "b_location_id",
+          "confidence_score": 0.85,
+          "transformation_logic": "direct",
+          "reasoning": "Semantic match. loc_code represents location, maps to b_location_id."
+        },
+        {
+          "source_field": "asset_type",
+          "target_field": "asset_type",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct name match."
+        },
+        {
+          "source_field": "status",
+          "target_field": "status",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct name match."
+        },
+        {
+          "source_field": "cost",
+          "target_field": "cost",
+          "confidence_score": 0.8,
+          "transformation_logic": "cast(cost, decimal)",
+          "reasoning": "Semantic match. Both represent cost, requires type conversion."
+        }
+      ],
+      "unmapped_source_fields": [
+        "purchase_date"
+      ],
+      "unmapped_required_target_fields": []
+    },
+    {
+      "source_entity": "Locations",
+      "target_entity": "Location",
+      "field_mappings": [
+        {
+          "source_field": "location_key",
+          "target_field": "location_id",
+          "confidence_score": 0.98,
+          "transformation_logic": "direct",
+          "reasoning": "Direct semantic match. location_key is the primary key of source Locations, maps to location_id in target."
+        },
+        {
+          "source_field": "loc_name",
+          "target_field": "location_name",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct name match."
+        },
+        {
+          "source_field": "parent_ref",
+          "target_field": "parent_id",
+          "confidence_score": 0.85,
+          "transformation_logic": "direct",
+          "reasoning": "Semantic match. parent_ref represents parent location, maps to parent_id."
+        },
+        {
+          "source_field": "site",
+          "target_field": "site",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct name match."
+        },
+        {
+          "source_field": "building",
+          "target_field": "building",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct name match."
+        },
+        {
+          "source_field": "floor",
+          "target_field": "floor",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct name match."
+        }
+      ],
+      "unmapped_source_fields": [],
+      "unmapped_required_target_fields": []
+    },
+    {
+      "source_entity": "WorkOrders",
+      "target_entity": "WorkOrder",
+      "field_mappings": [
+        {
+          "source_field": "wo_id",
+          "target_field": "wo_id",
+          "confidence_score": 0.98,
+          "transformation_logic": "direct",
+          "reasoning": "Direct name match."
+        },
+        {
+          "source_field": "equip_id",
+          "target_field": "asset_id",
+          "confidence_score": 0.8,
+          "transformation_logic": "direct",
+          "reasoning": "Semantic match. equip_id likely refers to asset_id."
+        },
+        {
+          "source_field": "status",
+          "target_field": "status",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct name match."
+        },
+        {
+          "source_field": "priority",
+          "target_field": "priority",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct name match."
+        },
+        {
+          "source_field": "created_date",
+          "target_field": "created_date",
+          "confidence_score": 0.8,
+          "transformation_logic": "cast(created_date, date)",
+          "reasoning": "Semantic match, requires type conversion."
+        },
+        {
+          "source_field": "closed_date",
+          "target_field": "closed_date",
+          "confidence_score": 0.8,
+          "transformation_logic": "cast(closed_date, date)",
+          "reasoning": "Semantic match, requires type conversion."
+        },
+        {
+          "source_field": "description",
+          "target_field": "description",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct name match."
+        }
+      ],
+      "unmapped_source_fields": [
+        "technician_ref"
+      ],
+      "unmapped_required_target_fields": [
+        "assigned_user"
+      ]
+    },
+    {
+      "source_entity": "Users",
+      "target_entity": "User",
+      "field_mappings": [
+        {
+          "source_field": "user_id",
+          "target_field": "user_id",
+          "confidence_score": 0.98,
+          "transformation_logic": "direct",
+          "reasoning": "Direct name match."
+        },
+        {
+          "source_field": "name",
+          "target_field": "full_name",
+          "confidence_score": 0.9,
+          "transformation_logic": "direct",
+          "reasoning": "Semantic match. name likely represents full_name."
+        },
+        {
+          "source_field": "role",
+          "target_field": "role",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct name match."
+        },
+        {
+          "source_field": "email",
+          "target_field": "email",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct name match."
+        },
+        {
+          "source_field": "department",
+          "target_field": "department",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct name match."
+        },
+        {
+          "source_field": "active",
+          "target_field": "is_active",
+          "confidence_score": 0.95,
+          "transformation_logic": "direct",
+          "reasoning": "Direct name match."
+        }
+      ],
+      "unmapped_source_fields": [],
+      "unmapped_required_target_fields": []
+    }
+  ],
+  "user_mapping_count": 0,
+  "ai_mapping_count": 25,
+  "_meta": {
+    "saved_at": "2026-06-16T13:13:15.370004",
+    "filename": "mapping_document.json"
+  }
+}

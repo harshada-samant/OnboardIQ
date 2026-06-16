@@ -1,0 +1,77 @@
+{
+  "readiness_score": 40.5,
+  "readiness_grade": "D",
+  "sub_scores": {
+    "data_quality": 90.0,
+    "mapping_cover": 0.0,
+    "spec_complete": 0.0,
+    "rel_clarity": 90.0
+  },
+  "risk_register": [
+    {
+      "severity": "CRITICAL",
+      "entity": "Mapping",
+      "title": "mapping_document is missing",
+      "root_cause": "Missing Mapping Agent output.",
+      "impact": "Cannot assess mapping coverage.",
+      "action": "Re-run Mapping Agent before Readiness assessment."
+    },
+    {
+      "severity": "HIGH",
+      "entity": "Assets",
+      "title": "10 orphan record(s) (broken FK references)",
+      "root_cause": "Broken foreign key references in Assets.",
+      "impact": "Records reference non-existent parent IDs.",
+      "action": "Resolve missing parent records or nullify FK before loading."
+    },
+    {
+      "severity": "HIGH",
+      "entity": "Specification",
+      "title": "migration_spec is missing",
+      "root_cause": "Missing Specification Agent output.",
+      "impact": "Data contracts not generated.",
+      "action": "Re-run Specification Agent."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Assets",
+      "title": "Referential integrity check failed: 10 orphan records reference invalid 'Locations.parent_ref' values.",
+      "root_cause": "Invalid 'Locations.parent_ref' values.",
+      "impact": "Referential integrity check failed on field 'loc_code'.",
+      "action": "Review source data for this field and apply appropriate cleansing."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Locations",
+      "title": "Unresolved FK candidate(s): ['parent_ref']",
+      "root_cause": "Missing parent entity for 'parent_ref'.",
+      "impact": "Foreign key 'parent_ref' has no matching parent entity.",
+      "action": "Upload the referenced parent table or confirm the FK is to an external system."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Users",
+      "title": "Unresolved FK candidate(s): ['email']",
+      "root_cause": "Missing parent entity for 'email'.",
+      "impact": "Foreign key 'email' has no matching parent entity.",
+      "action": "Upload the referenced parent table or confirm the FK is to an external system."
+    }
+  ],
+  "risk_summary": {
+    "CRITICAL": 1,
+    "HIGH": 2,
+    "MEDIUM": 3,
+    "LOW": 0
+  },
+  "degraded_mode": false,
+  "score_weights": {
+    "data_quality": 0.35,
+    "mapping_cover": 0.35,
+    "spec_complete": 0.2,
+    "rel_clarity": 0.1
+  },
+  "_meta": {
+    "saved_at": "2026-06-13T10:27:44.201383",
+    "filename": "readiness_report.json"
+  }
+}

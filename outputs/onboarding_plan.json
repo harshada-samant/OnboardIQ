@@ -1,0 +1,537 @@
+{
+  "readiness_score": 71.9,
+  "total_waves": 2,
+  "has_circular_dependencies": false,
+  "waves": [
+    {
+      "wave_number": 1,
+      "entities": [
+        "Assets",
+        "Locations",
+        "Users"
+      ],
+      "risk_items": [
+        {
+          "severity": "MEDIUM",
+          "entity": "Assets",
+          "title": "Field 'loc_code' contains high null percentage (20.0%).",
+          "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "Assets",
+          "title": "Field 'status' contains high null percentage (10.0%).",
+          "impact": "Check type NULL_CHECK failed on field 'status'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "Assets",
+          "title": "Unresolved FK candidate(s): ['loc_code']",
+          "impact": "These fields look like foreign keys but no matching parent entity was found.",
+          "action": "Upload the referenced parent table or confirm the FK is to an external system."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "Locations",
+          "title": "Unresolved FK candidate(s): ['parent_ref']",
+          "impact": "These fields look like foreign keys but no matching parent entity was found.",
+          "action": "Upload the referenced parent table or confirm the FK is to an external system."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "Users",
+          "title": "Field 'email' contains high null percentage (20.0%).",
+          "impact": "Check type NULL_CHECK failed on field 'email'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        }
+      ],
+      "csv_files": [
+        "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\assets.csv",
+        "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\locations.csv",
+        "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\users.csv"
+      ],
+      "tool_stack": [
+        "Pandas"
+      ],
+      "total_rows": 19,
+      "source_mode": "file",
+      "description": "This wave focuses on foundational entities \u2013 Assets, Locations, and Users \u2013 establishing the core data structure for the system. These entities are grouped together as they represent the fundamental building blocks for tracking resources and personnel.",
+      "migration_approach": "A full load to CSV is recommended, prioritizing data cleansing and validation to address the identified null percentages and foreign key issues before loading into the target system.",
+      "risk_mitigations": [
+        "Implement a data quality rule to populate 'status' in Assets with a default value if null, based on business logic.",
+        "Develop a lookup table to map 'loc_code' in Assets to valid Location IDs, handling the 20% null rate by assigning a default location or flagging for manual review.",
+        "Investigate and resolve the 'parent_ref' foreign key issue in Locations by identifying the correct parent records or creating placeholder records if necessary."
+      ]
+    },
+    {
+      "wave_number": 2,
+      "entities": [
+        "WorkOrders"
+      ],
+      "risk_items": [
+        {
+          "severity": "CRITICAL",
+          "entity": "WorkOrders",
+          "title": "1 required target field(s) unmapped: ['assigned_user']",
+          "impact": "Required fields in target schema have no corresponding source data.",
+          "action": "Provide default values, derive from other fields, or clarify with source owner."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "WorkOrders",
+          "title": "1 orphan record(s) (broken FK references)",
+          "impact": "Records in WorkOrders reference parent IDs that do not exist.",
+          "action": "Resolve missing parent records or nullify FK before loading."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "WorkOrders",
+          "title": "Field 'closed_date' contains high null percentage (55.0%).",
+          "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "WorkOrders",
+          "title": "Referential integrity check failed: 1 orphan records reference invalid 'Assets.asset_no' values.",
+          "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'equip_id'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "WorkOrders",
+          "title": "Unresolved FK candidate(s): ['technician_ref']",
+          "impact": "These fields look like foreign keys but no matching parent entity was found.",
+          "action": "Upload the referenced parent table or confirm the FK is to an external system."
+        }
+      ],
+      "csv_files": [
+        "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_02\\workorders.csv"
+      ],
+      "tool_stack": [
+        "Pandas"
+      ],
+      "total_rows": 20,
+      "source_mode": "file",
+      "description": "This wave migrates WorkOrders, which depend on the entities loaded in Wave 1, and represents a key business process. It's crucial to ensure data integrity, particularly regarding foreign key relationships and required fields.",
+      "migration_approach": "A lookup-first approach is recommended, validating 'assigned_user', 'technician_ref', and 'asset_no' against the data loaded in Wave 1 before loading WorkOrders to ensure referential integrity.",
+      "risk_mitigations": [
+        "Map the 'assigned_user' field to the Users table and implement a default user assignment process for any missing values.",
+        "Investigate the orphan WorkOrder records and either update them with valid foreign key values or archive them after business review.",
+        "Analyze the 'closed_date' nulls and determine if a default closed date or a separate process for handling incomplete work orders is required."
+      ]
+    }
+  ],
+  "silver_waves": [
+    {
+      "wave_number": 1,
+      "entities": [
+        "Assets",
+        "Locations",
+        "Users"
+      ],
+      "risk_items": [
+        {
+          "severity": "MEDIUM",
+          "entity": "Assets",
+          "title": "Field 'loc_code' contains high null percentage (20.0%).",
+          "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "Assets",
+          "title": "Field 'status' contains high null percentage (10.0%).",
+          "impact": "Check type NULL_CHECK failed on field 'status'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "Assets",
+          "title": "Unresolved FK candidate(s): ['loc_code']",
+          "impact": "These fields look like foreign keys but no matching parent entity was found.",
+          "action": "Upload the referenced parent table or confirm the FK is to an external system."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "Locations",
+          "title": "Unresolved FK candidate(s): ['parent_ref']",
+          "impact": "These fields look like foreign keys but no matching parent entity was found.",
+          "action": "Upload the referenced parent table or confirm the FK is to an external system."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "Users",
+          "title": "Field 'email' contains high null percentage (20.0%).",
+          "impact": "Check type NULL_CHECK failed on field 'email'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        }
+      ],
+      "csv_files": [
+        "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\assets.csv",
+        "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\locations.csv",
+        "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\users.csv"
+      ],
+      "tool_stack": [
+        "Pandas"
+      ],
+      "total_rows": 19,
+      "source_mode": "file",
+      "description": "This wave focuses on foundational entities \u2013 Assets, Locations, and Users \u2013 establishing the core data structure for the system. These entities are grouped together as they represent the fundamental building blocks for tracking resources and personnel.",
+      "migration_approach": "A full load to CSV is recommended, prioritizing data cleansing and validation to address the identified null percentages and foreign key issues before loading into the target system.",
+      "risk_mitigations": [
+        "Implement a data quality rule to populate 'status' in Assets with a default value if null, based on business logic.",
+        "Develop a lookup table to map 'loc_code' in Assets to valid Location IDs, handling the 20% null rate by assigning a default location or flagging for manual review.",
+        "Investigate and resolve the 'parent_ref' foreign key issue in Locations by identifying the correct parent records or creating placeholder records if necessary."
+      ]
+    },
+    {
+      "wave_number": 2,
+      "entities": [
+        "WorkOrders"
+      ],
+      "risk_items": [
+        {
+          "severity": "CRITICAL",
+          "entity": "WorkOrders",
+          "title": "1 required target field(s) unmapped: ['assigned_user']",
+          "impact": "Required fields in target schema have no corresponding source data.",
+          "action": "Provide default values, derive from other fields, or clarify with source owner."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "WorkOrders",
+          "title": "1 orphan record(s) (broken FK references)",
+          "impact": "Records in WorkOrders reference parent IDs that do not exist.",
+          "action": "Resolve missing parent records or nullify FK before loading."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "WorkOrders",
+          "title": "Field 'closed_date' contains high null percentage (55.0%).",
+          "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "WorkOrders",
+          "title": "Referential integrity check failed: 1 orphan records reference invalid 'Assets.asset_no' values.",
+          "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'equip_id'.",
+          "action": "Review source data for this field and apply appropriate cleansing."
+        },
+        {
+          "severity": "MEDIUM",
+          "entity": "WorkOrders",
+          "title": "Unresolved FK candidate(s): ['technician_ref']",
+          "impact": "These fields look like foreign keys but no matching parent entity was found.",
+          "action": "Upload the referenced parent table or confirm the FK is to an external system."
+        }
+      ],
+      "csv_files": [
+        "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_02\\workorders.csv"
+      ],
+      "tool_stack": [
+        "Pandas"
+      ],
+      "total_rows": 20,
+      "source_mode": "file",
+      "description": "This wave migrates WorkOrders, which depend on the entities loaded in Wave 1, and represents a key business process. It's crucial to ensure data integrity, particularly regarding foreign key relationships and required fields.",
+      "migration_approach": "A lookup-first approach is recommended, validating 'assigned_user', 'technician_ref', and 'asset_no' against the data loaded in Wave 1 before loading WorkOrders to ensure referential integrity.",
+      "risk_mitigations": [
+        "Map the 'assigned_user' field to the Users table and implement a default user assignment process for any missing values.",
+        "Investigate the orphan WorkOrder records and either update them with valid foreign key values or archive them after business review.",
+        "Analyze the 'closed_date' nulls and determine if a default closed date or a separate process for handling incomplete work orders is required."
+      ]
+    }
+  ],
+  "bronze_silver_gold": {
+    "Bronze": {
+      "description": "Raw ingest layer \u2014 all source entities are captured as-is with no wave sequencing.",
+      "entities": [
+        "Assets",
+        "Locations",
+        "WorkOrders",
+        "Users"
+      ],
+      "source_entities": [
+        {
+          "entity_name": "Assets",
+          "status": "RAW"
+        },
+        {
+          "entity_name": "Locations",
+          "status": "RAW"
+        },
+        {
+          "entity_name": "WorkOrders",
+          "status": "RAW"
+        },
+        {
+          "entity_name": "Users",
+          "status": "RAW"
+        }
+      ]
+    },
+    "Silver": {
+      "description": "Wave-sequenced transformation layer \u2014 entities are processed into CSV files in dependency order.",
+      "waves": [
+        {
+          "wave_number": 1,
+          "entities": [
+            "Assets",
+            "Locations",
+            "Users"
+          ],
+          "csv_files": [
+            "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\assets.csv",
+            "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\locations.csv",
+            "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\users.csv"
+          ],
+          "tool_stack": [
+            "Pandas"
+          ],
+          "total_rows": 19,
+          "source_mode": "file",
+          "risk_items": [
+            {
+              "severity": "MEDIUM",
+              "entity": "Assets",
+              "title": "Field 'loc_code' contains high null percentage (20.0%).",
+              "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "Assets",
+              "title": "Field 'status' contains high null percentage (10.0%).",
+              "impact": "Check type NULL_CHECK failed on field 'status'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "Assets",
+              "title": "Unresolved FK candidate(s): ['loc_code']",
+              "impact": "These fields look like foreign keys but no matching parent entity was found.",
+              "action": "Upload the referenced parent table or confirm the FK is to an external system."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "Locations",
+              "title": "Unresolved FK candidate(s): ['parent_ref']",
+              "impact": "These fields look like foreign keys but no matching parent entity was found.",
+              "action": "Upload the referenced parent table or confirm the FK is to an external system."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "Users",
+              "title": "Field 'email' contains high null percentage (20.0%).",
+              "impact": "Check type NULL_CHECK failed on field 'email'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            }
+          ],
+          "description": "This wave focuses on foundational entities \u2013 Assets, Locations, and Users \u2013 establishing the core data structure for the system. These entities are grouped together as they represent the fundamental building blocks for tracking resources and personnel.",
+          "migration_approach": "A full load to CSV is recommended, prioritizing data cleansing and validation to address the identified null percentages and foreign key issues before loading into the target system.",
+          "risk_mitigations": [
+            "Implement a data quality rule to populate 'status' in Assets with a default value if null, based on business logic.",
+            "Develop a lookup table to map 'loc_code' in Assets to valid Location IDs, handling the 20% null rate by assigning a default location or flagging for manual review.",
+            "Investigate and resolve the 'parent_ref' foreign key issue in Locations by identifying the correct parent records or creating placeholder records if necessary."
+          ]
+        },
+        {
+          "wave_number": 2,
+          "entities": [
+            "WorkOrders"
+          ],
+          "csv_files": [
+            "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_02\\workorders.csv"
+          ],
+          "tool_stack": [
+            "Pandas"
+          ],
+          "total_rows": 20,
+          "source_mode": "file",
+          "risk_items": [
+            {
+              "severity": "CRITICAL",
+              "entity": "WorkOrders",
+              "title": "1 required target field(s) unmapped: ['assigned_user']",
+              "impact": "Required fields in target schema have no corresponding source data.",
+              "action": "Provide default values, derive from other fields, or clarify with source owner."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "WorkOrders",
+              "title": "1 orphan record(s) (broken FK references)",
+              "impact": "Records in WorkOrders reference parent IDs that do not exist.",
+              "action": "Resolve missing parent records or nullify FK before loading."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "WorkOrders",
+              "title": "Field 'closed_date' contains high null percentage (55.0%).",
+              "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "WorkOrders",
+              "title": "Referential integrity check failed: 1 orphan records reference invalid 'Assets.asset_no' values.",
+              "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'equip_id'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "WorkOrders",
+              "title": "Unresolved FK candidate(s): ['technician_ref']",
+              "impact": "These fields look like foreign keys but no matching parent entity was found.",
+              "action": "Upload the referenced parent table or confirm the FK is to an external system."
+            }
+          ],
+          "description": "This wave migrates WorkOrders, which depend on the entities loaded in Wave 1, and represents a key business process. It's crucial to ensure data integrity, particularly regarding foreign key relationships and required fields.",
+          "migration_approach": "A lookup-first approach is recommended, validating 'assigned_user', 'technician_ref', and 'asset_no' against the data loaded in Wave 1 before loading WorkOrders to ensure referential integrity.",
+          "risk_mitigations": [
+            "Map the 'assigned_user' field to the Users table and implement a default user assignment process for any missing values.",
+            "Investigate the orphan WorkOrder records and either update them with valid foreign key values or archive them after business review.",
+            "Analyze the 'closed_date' nulls and determine if a default closed date or a separate process for handling incomplete work orders is required."
+          ]
+        }
+      ],
+      "entities": [
+        "Assets",
+        "Locations",
+        "Users",
+        "WorkOrders"
+      ],
+      "csv_files": [
+        "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\assets.csv",
+        "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\locations.csv",
+        "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\users.csv",
+        "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_02\\workorders.csv"
+      ]
+    },
+    "Gold": {
+      "description": "Target load layer \u2014 Silver CSV outputs are loaded into the target database.",
+      "loads": [
+        {
+          "wave_number": 1,
+          "source_csv_files": [
+            "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\assets.csv",
+            "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\locations.csv",
+            "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\users.csv"
+          ],
+          "target_entities": [
+            "Assets",
+            "Locations",
+            "Users"
+          ],
+          "load_target": "target_db",
+          "load_strategy": "bulk load from Silver CSVs",
+          "risk_items": [
+            {
+              "severity": "MEDIUM",
+              "entity": "Assets",
+              "title": "Field 'loc_code' contains high null percentage (20.0%).",
+              "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "Assets",
+              "title": "Field 'status' contains high null percentage (10.0%).",
+              "impact": "Check type NULL_CHECK failed on field 'status'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "Assets",
+              "title": "Unresolved FK candidate(s): ['loc_code']",
+              "impact": "These fields look like foreign keys but no matching parent entity was found.",
+              "action": "Upload the referenced parent table or confirm the FK is to an external system."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "Locations",
+              "title": "Unresolved FK candidate(s): ['parent_ref']",
+              "impact": "These fields look like foreign keys but no matching parent entity was found.",
+              "action": "Upload the referenced parent table or confirm the FK is to an external system."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "Users",
+              "title": "Field 'email' contains high null percentage (20.0%).",
+              "impact": "Check type NULL_CHECK failed on field 'email'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            }
+          ]
+        },
+        {
+          "wave_number": 2,
+          "source_csv_files": [
+            "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_02\\workorders.csv"
+          ],
+          "target_entities": [
+            "WorkOrders"
+          ],
+          "load_target": "target_db",
+          "load_strategy": "bulk load from Silver CSVs",
+          "risk_items": [
+            {
+              "severity": "CRITICAL",
+              "entity": "WorkOrders",
+              "title": "1 required target field(s) unmapped: ['assigned_user']",
+              "impact": "Required fields in target schema have no corresponding source data.",
+              "action": "Provide default values, derive from other fields, or clarify with source owner."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "WorkOrders",
+              "title": "1 orphan record(s) (broken FK references)",
+              "impact": "Records in WorkOrders reference parent IDs that do not exist.",
+              "action": "Resolve missing parent records or nullify FK before loading."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "WorkOrders",
+              "title": "Field 'closed_date' contains high null percentage (55.0%).",
+              "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "WorkOrders",
+              "title": "Referential integrity check failed: 1 orphan records reference invalid 'Assets.asset_no' values.",
+              "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'equip_id'.",
+              "action": "Review source data for this field and apply appropriate cleansing."
+            },
+            {
+              "severity": "MEDIUM",
+              "entity": "WorkOrders",
+              "title": "Unresolved FK candidate(s): ['technician_ref']",
+              "impact": "These fields look like foreign keys but no matching parent entity was found.",
+              "action": "Upload the referenced parent table or confirm the FK is to an external system."
+            }
+          ]
+        }
+      ],
+      "target_entities": [
+        "Assets",
+        "Locations",
+        "Users",
+        "WorkOrders"
+      ],
+      "source_csv_files": [
+        "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\assets.csv",
+        "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\locations.csv",
+        "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_01\\users.csv",
+        "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\outputs\\silver\\wave_02\\workorders.csv"
+      ]
+    }
+  },
+  "degraded_mode": false,
+  "_meta": {
+    "saved_at": "2026-06-16T13:14:28.810967",
+    "filename": "onboarding_plan.json"
+  }
+}

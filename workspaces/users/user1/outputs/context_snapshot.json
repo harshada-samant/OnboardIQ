@@ -1,0 +1,2077 @@
+{
+  "source_files": [
+    "workspaces/users/user1/uploads/assets.csv",
+    "workspaces/users/user1/uploads/locations.csv",
+    "workspaces/users/user1/uploads/users.csv",
+    "workspaces/users/user1/uploads/work_orders.csv",
+    "workspaces/users/user1/uploads/workorders01.csv"
+  ],
+  "target_database": "duckdb",
+  "entity_catalog": {
+    "entities": [
+      {
+        "entity_name": "Users",
+        "source_file": "Users.csv",
+        "row_count": 5,
+        "primary_key": "user_id",
+        "fields": [
+          {
+            "name": "user_id",
+            "dtype": "str",
+            "role": "primary_key",
+            "null_pct": 0.0,
+            "unique_count": 5
+          },
+          {
+            "name": "name",
+            "dtype": "str",
+            "role": "attribute",
+            "null_pct": 0.0,
+            "unique_count": 5
+          },
+          {
+            "name": "role",
+            "dtype": "str",
+            "role": "attribute",
+            "null_pct": 0.0,
+            "unique_count": 4
+          },
+          {
+            "name": "email",
+            "dtype": "str",
+            "role": "attribute",
+            "null_pct": 20.0,
+            "unique_count": 4
+          },
+          {
+            "name": "department",
+            "dtype": "str",
+            "role": "attribute",
+            "null_pct": 0.0,
+            "unique_count": 4
+          },
+          {
+            "name": "active",
+            "dtype": "bool",
+            "role": "attribute",
+            "null_pct": 0.0,
+            "unique_count": 2
+          }
+        ],
+        "fk_candidates": [],
+        "data_quality_notes": [
+          "email has 20% nulls"
+        ],
+        "relationships": []
+      },
+      {
+        "entity_name": "Locations",
+        "source_file": "Locations.csv",
+        "row_count": 4,
+        "primary_key": "location_key",
+        "fields": [
+          {
+            "name": "location_key",
+            "dtype": "str",
+            "role": "primary_key",
+            "null_pct": 0.0,
+            "unique_count": 4
+          },
+          {
+            "name": "loc_name",
+            "dtype": "str",
+            "role": "descriptive",
+            "null_pct": 0.0,
+            "unique_count": 4
+          },
+          {
+            "name": "parent_ref",
+            "dtype": "str",
+            "role": "foreign_key",
+            "null_pct": 0.0,
+            "unique_count": 2,
+            "fk_pattern": "SITE-xx"
+          },
+          {
+            "name": "site",
+            "dtype": "str",
+            "role": "descriptive",
+            "null_pct": 0.0,
+            "unique_count": 2
+          },
+          {
+            "name": "building",
+            "dtype": "str",
+            "role": "descriptive",
+            "null_pct": 0.0,
+            "unique_count": 3
+          },
+          {
+            "name": "floor",
+            "dtype": "str",
+            "role": "descriptive",
+            "null_pct": 0.0,
+            "unique_count": 2
+          }
+        ],
+        "fk_candidates": [
+          {
+            "field": "parent_ref",
+            "pattern": "SITE-xx",
+            "sample_values": [
+              "SITE01",
+              "SITE02"
+            ],
+            "reasoning": "Values follow a site reference pattern, likely references a Sites table"
+          }
+        ],
+        "data_quality_notes": [],
+        "relationships": []
+      },
+      {
+        "entity_name": "Assets",
+        "source_file": "Assets",
+        "row_count": 10,
+        "primary_key": "asset_no",
+        "fields": [
+          {
+            "name": "asset_no",
+            "dtype": "str",
+            "role": "primary_key",
+            "null_pct": 0.0,
+            "unique_count": 10
+          },
+          {
+            "name": "asset_name",
+            "dtype": "str",
+            "role": "descriptive",
+            "null_pct": 0.0,
+            "unique_count": 10
+          },
+          {
+            "name": "loc_code",
+            "dtype": "str",
+            "role": "foreign_key",
+            "null_pct": 20.0,
+            "unique_count": 5,
+            "fk_pattern": "LOCxx"
+          },
+          {
+            "name": "asset_type",
+            "dtype": "str",
+            "role": "descriptive",
+            "null_pct": 0.0,
+            "unique_count": 6
+          },
+          {
+            "name": "status",
+            "dtype": "str",
+            "role": "descriptive",
+            "null_pct": 10.0,
+            "unique_count": 3
+          },
+          {
+            "name": "purchase_date",
+            "dtype": "str",
+            "role": "descriptive",
+            "null_pct": 0.0,
+            "unique_count": 10
+          },
+          {
+            "name": "cost",
+            "dtype": "int64",
+            "role": "descriptive",
+            "null_pct": 0.0,
+            "unique_count": 10
+          }
+        ],
+        "fk_candidates": [
+          {
+            "field": "loc_code",
+            "pattern": "LOCxx",
+            "sample_values": [
+              "LOC01",
+              "LOC02",
+              "LOC03"
+            ],
+            "reasoning": "Values follow a location code pattern, likely references a Locations table"
+          }
+        ],
+        "data_quality_notes": [
+          "loc_code has 20% nulls"
+        ],
+        "relationships": [
+          {
+            "from_field": "loc_code",
+            "to_entity": "Locations",
+            "to_field": "location_key",
+            "confidence": "MEDIUM",
+            "reasoning": "Assets.loc_code pattern LOCxx potentially references Locations.location_key"
+          }
+        ]
+      },
+      {
+        "entity_name": "WorkOrders",
+        "source_file": "WorkOrders.csv",
+        "row_count": 10,
+        "primary_key": "wo_id",
+        "fields": [
+          {
+            "name": "wo_id",
+            "dtype": "str",
+            "role": "primary_key",
+            "null_pct": 0.0,
+            "unique_count": 10
+          },
+          {
+            "name": "equip_id",
+            "dtype": "str",
+            "role": "foreign_key",
+            "null_pct": 0.0,
+            "unique_count": 7,
+            "fk_pattern": "Axxx"
+          },
+          {
+            "name": "technician_ref",
+            "dtype": "str",
+            "role": "foreign_key",
+            "null_pct": 10.0,
+            "unique_count": 3,
+            "fk_pattern": "Uxxx"
+          },
+          {
+            "name": "status",
+            "dtype": "str",
+            "role": "attribute",
+            "null_pct": 0.0,
+            "unique_count": 3
+          },
+          {
+            "name": "priority",
+            "dtype": "str",
+            "role": "attribute",
+            "null_pct": 0.0,
+            "unique_count": 3
+          },
+          {
+            "name": "created_date",
+            "dtype": "str",
+            "role": "attribute",
+            "null_pct": 0.0,
+            "unique_count": 10
+          },
+          {
+            "name": "closed_date",
+            "dtype": "str",
+            "role": "attribute",
+            "null_pct": 60.0,
+            "unique_count": 4
+          },
+          {
+            "name": "description",
+            "dtype": "str",
+            "role": "attribute",
+            "null_pct": 0.0,
+            "unique_count": 10
+          }
+        ],
+        "fk_candidates": [
+          {
+            "field": "equip_id",
+            "pattern": "Axxx",
+            "sample_values": [
+              "A001",
+              "A002"
+            ],
+            "reasoning": "Values follow an equipment ID pattern, likely references an Equipment table"
+          },
+          {
+            "field": "technician_ref",
+            "pattern": "Uxxx",
+            "sample_values": [
+              "U001",
+              "U002"
+            ],
+            "reasoning": "Values follow a technician ID pattern, likely references a Technician table"
+          }
+        ],
+        "data_quality_notes": [
+          "closed_date has 60% nulls",
+          "technician_ref has 10% nulls",
+          "equip_id has duplicates (unique_count < row_count)"
+        ],
+        "relationships": []
+      }
+    ],
+    "potential_duplicate_entities": [],
+    "summary": {
+      "total_entities": 4,
+      "total_fields": 27,
+      "relationships_detected": 1,
+      "duplicate_entity_pairs": 0,
+      "failed_tables": []
+    },
+    "_meta": {
+      "saved_at": "2026-06-16T13:28:44.273574",
+      "filename": "entity_catalog.json"
+    }
+  },
+  "file_registry": [
+    {
+      "logical_table": "Assets",
+      "schema_fingerprint": "asset_name|asset_no|asset_type|cost|loc_code|purchase_date|status",
+      "phase1_checkpoint": "phase1_Assets.json",
+      "representative_file": "assets.csv",
+      "has_duplicates": false,
+      "source_files": [
+        {
+          "file_name": "assets.csv",
+          "source_type": "csv",
+          "row_count": 10,
+          "has_data": true,
+          "dialect": null
+        }
+      ]
+    },
+    {
+      "logical_table": "Locations",
+      "schema_fingerprint": "building|floor|loc_name|location_key|parent_ref|site",
+      "phase1_checkpoint": "phase1_Locations.json",
+      "representative_file": "locations.csv",
+      "has_duplicates": false,
+      "source_files": [
+        {
+          "file_name": "locations.csv",
+          "source_type": "csv",
+          "row_count": 4,
+          "has_data": true,
+          "dialect": null
+        }
+      ]
+    },
+    {
+      "logical_table": "Users",
+      "schema_fingerprint": "active|department|email|name|role|user_id",
+      "phase1_checkpoint": "phase1_Users.json",
+      "representative_file": "users.csv",
+      "has_duplicates": false,
+      "source_files": [
+        {
+          "file_name": "users.csv",
+          "source_type": "csv",
+          "row_count": 5,
+          "has_data": true,
+          "dialect": null
+        }
+      ]
+    },
+    {
+      "logical_table": "WorkOrders",
+      "schema_fingerprint": "closed_date|created_date|description|equip_id|priority|status|technician_ref|wo_id",
+      "phase1_checkpoint": "phase1_WorkOrders.json",
+      "representative_file": "work_orders.csv",
+      "has_duplicates": true,
+      "source_files": [
+        {
+          "file_name": "work_orders.csv",
+          "source_type": "csv",
+          "row_count": 10,
+          "has_data": true,
+          "dialect": null
+        },
+        {
+          "file_name": "workorders01.csv",
+          "source_type": "csv",
+          "row_count": 10,
+          "has_data": true,
+          "dialect": null
+        }
+      ]
+    }
+  ],
+  "quality_report": {
+    "profile_summary": {
+      "assessed_entities": [
+        "Assets",
+        "Locations",
+        "Users",
+        "WorkOrders"
+      ],
+      "entity_row_counts": {
+        "Assets": 10,
+        "Locations": 4,
+        "Users": 5,
+        "WorkOrders": 20
+      },
+      "total_records_analyzed": 39,
+      "overall_data_completeness": 94.37
+    },
+    "entity_quality": {
+      "Assets": {
+        "logical_table": "Assets",
+        "representative_file": "assets.csv",
+        "total_rows": 10,
+        "completeness_score": 95.71,
+        "duplicate_records_count": 0,
+        "orphan_records_count": 1,
+        "fields": {
+          "asset_no": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 10,
+            "issues_detected": []
+          },
+          "asset_name": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 10,
+            "issues_detected": []
+          },
+          "loc_code": {
+            "null_count": 2,
+            "null_pct": 20.0,
+            "unique_count": 5,
+            "issues_detected": [
+              "Field 'loc_code' contains high null percentage (20.0%).",
+              "Referential integrity check failed: 1 orphan records reference invalid 'Locations.location_key' values."
+            ]
+          },
+          "asset_type": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 6,
+            "issues_detected": []
+          },
+          "status": {
+            "null_count": 1,
+            "null_pct": 10.0,
+            "unique_count": 3,
+            "issues_detected": [
+              "Field 'status' contains high null percentage (10.0%)."
+            ]
+          },
+          "purchase_date": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 10,
+            "issues_detected": []
+          },
+          "cost": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 10,
+            "issues_detected": []
+          }
+        },
+        "checks": [
+          {
+            "check_type": "NULL_CHECK",
+            "field": "asset_no",
+            "status": "PASS",
+            "message": "Field 'asset_no' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "asset_name",
+            "status": "PASS",
+            "message": "Field 'asset_name' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "loc_code",
+            "status": "FAIL",
+            "message": "Field 'loc_code' contains high null percentage (20.0%)."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "asset_type",
+            "status": "PASS",
+            "message": "Field 'asset_type' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "status",
+            "status": "FAIL",
+            "message": "Field 'status' contains high null percentage (10.0%)."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "purchase_date",
+            "status": "PASS",
+            "message": "Field 'purchase_date' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "cost",
+            "status": "PASS",
+            "message": "Field 'cost' has no missing values."
+          },
+          {
+            "check_type": "PRIMARY_KEY_DUPLICATES",
+            "field": "asset_no",
+            "status": "PASS",
+            "message": "Primary key 'asset_no' uniqueness verified."
+          },
+          {
+            "check_type": "REFERENTIAL_INTEGRITY",
+            "field": "loc_code",
+            "status": "FAIL",
+            "message": "Referential integrity check failed: 1 orphan records reference invalid 'Locations.location_key' values."
+          }
+        ]
+      },
+      "Locations": {
+        "logical_table": "Locations",
+        "representative_file": "locations.csv",
+        "total_rows": 4,
+        "completeness_score": 100.0,
+        "duplicate_records_count": 0,
+        "orphan_records_count": 0,
+        "fields": {
+          "location_key": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 4,
+            "issues_detected": []
+          },
+          "loc_name": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 4,
+            "issues_detected": []
+          },
+          "parent_ref": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 2,
+            "issues_detected": []
+          },
+          "site": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 2,
+            "issues_detected": []
+          },
+          "building": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 3,
+            "issues_detected": []
+          },
+          "floor": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 2,
+            "issues_detected": []
+          }
+        },
+        "checks": [
+          {
+            "check_type": "NULL_CHECK",
+            "field": "location_key",
+            "status": "PASS",
+            "message": "Field 'location_key' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "loc_name",
+            "status": "PASS",
+            "message": "Field 'loc_name' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "parent_ref",
+            "status": "PASS",
+            "message": "Field 'parent_ref' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "site",
+            "status": "PASS",
+            "message": "Field 'site' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "building",
+            "status": "PASS",
+            "message": "Field 'building' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "floor",
+            "status": "PASS",
+            "message": "Field 'floor' has no missing values."
+          },
+          {
+            "check_type": "PRIMARY_KEY_DUPLICATES",
+            "field": "location_key",
+            "status": "PASS",
+            "message": "Primary key 'location_key' uniqueness verified."
+          }
+        ]
+      },
+      "Users": {
+        "logical_table": "Users",
+        "representative_file": "users.csv",
+        "total_rows": 5,
+        "completeness_score": 96.67,
+        "duplicate_records_count": 0,
+        "orphan_records_count": 0,
+        "fields": {
+          "user_id": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 5,
+            "issues_detected": []
+          },
+          "name": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 5,
+            "issues_detected": []
+          },
+          "role": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 4,
+            "issues_detected": []
+          },
+          "email": {
+            "null_count": 1,
+            "null_pct": 20.0,
+            "unique_count": 4,
+            "issues_detected": [
+              "Field 'email' contains high null percentage (20.0%)."
+            ]
+          },
+          "department": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 4,
+            "issues_detected": []
+          },
+          "active": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 2,
+            "issues_detected": []
+          }
+        },
+        "checks": [
+          {
+            "check_type": "NULL_CHECK",
+            "field": "user_id",
+            "status": "PASS",
+            "message": "Field 'user_id' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "name",
+            "status": "PASS",
+            "message": "Field 'name' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "role",
+            "status": "PASS",
+            "message": "Field 'role' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "email",
+            "status": "FAIL",
+            "message": "Field 'email' contains high null percentage (20.0%)."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "department",
+            "status": "PASS",
+            "message": "Field 'department' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "active",
+            "status": "PASS",
+            "message": "Field 'active' has no missing values."
+          },
+          {
+            "check_type": "PRIMARY_KEY_DUPLICATES",
+            "field": "user_id",
+            "status": "PASS",
+            "message": "Primary key 'user_id' uniqueness verified."
+          }
+        ]
+      },
+      "WorkOrders": {
+        "logical_table": "WorkOrders",
+        "representative_file": "work_orders.csv",
+        "total_rows": 20,
+        "completeness_score": 92.5,
+        "duplicate_records_count": 0,
+        "orphan_records_count": 0,
+        "fields": {
+          "wo_id": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 20,
+            "issues_detected": []
+          },
+          "equip_id": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 8,
+            "issues_detected": []
+          },
+          "technician_ref": {
+            "null_count": 1,
+            "null_pct": 5.0,
+            "unique_count": 3,
+            "issues_detected": [
+              "Field 'technician_ref' contains 5.0% null values."
+            ]
+          },
+          "status": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 3,
+            "issues_detected": []
+          },
+          "priority": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 3,
+            "issues_detected": []
+          },
+          "created_date": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 20,
+            "issues_detected": []
+          },
+          "closed_date": {
+            "null_count": 11,
+            "null_pct": 55.0,
+            "unique_count": 9,
+            "issues_detected": [
+              "Field 'closed_date' contains high null percentage (55.0%)."
+            ]
+          },
+          "description": {
+            "null_count": 0,
+            "null_pct": 0.0,
+            "unique_count": 20,
+            "issues_detected": []
+          }
+        },
+        "checks": [
+          {
+            "check_type": "NULL_CHECK",
+            "field": "wo_id",
+            "status": "PASS",
+            "message": "Field 'wo_id' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "equip_id",
+            "status": "PASS",
+            "message": "Field 'equip_id' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "technician_ref",
+            "status": "WARNING",
+            "message": "Field 'technician_ref' contains 5.0% null values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "status",
+            "status": "PASS",
+            "message": "Field 'status' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "priority",
+            "status": "PASS",
+            "message": "Field 'priority' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "created_date",
+            "status": "PASS",
+            "message": "Field 'created_date' has no missing values."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "closed_date",
+            "status": "FAIL",
+            "message": "Field 'closed_date' contains high null percentage (55.0%)."
+          },
+          {
+            "check_type": "NULL_CHECK",
+            "field": "description",
+            "status": "PASS",
+            "message": "Field 'description' has no missing values."
+          },
+          {
+            "check_type": "PRIMARY_KEY_DUPLICATES",
+            "field": "wo_id",
+            "status": "PASS",
+            "message": "Primary key 'wo_id' uniqueness verified."
+          }
+        ]
+      }
+    },
+    "_meta": {
+      "saved_at": "2026-06-16T13:28:53.187519",
+      "filename": "quality_report.json"
+    }
+  },
+  "mappings": {
+    "mappings": [
+      {
+        "source_entity": "Users",
+        "target_entity": "User",
+        "field_mappings": [
+          {
+            "source_field": "user_id",
+            "target_field": "user_id",
+            "confidence_score": 0.98,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. Both are primary keys representing user identifiers."
+          },
+          {
+            "source_field": "name",
+            "target_field": "full_name",
+            "confidence_score": 0.85,
+            "transformation_logic": "direct",
+            "reasoning": "Semantic match. 'name' in source represents the full name of the user."
+          },
+          {
+            "source_field": "role",
+            "target_field": "role",
+            "confidence_score": 0.9,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. Both fields represent the user's role."
+          },
+          {
+            "source_field": "email",
+            "target_field": "email",
+            "confidence_score": 0.9,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. Both fields represent the user's email address."
+          },
+          {
+            "source_field": "department",
+            "target_field": "department",
+            "confidence_score": 0.9,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. Both fields represent the user's department."
+          },
+          {
+            "source_field": "active",
+            "target_field": "is_active",
+            "confidence_score": 0.85,
+            "transformation_logic": "direct",
+            "reasoning": "Semantic match. 'active' indicates if the user is active, same as 'is_active'."
+          }
+        ],
+        "unmapped_source_fields": [],
+        "unmapped_required_target_fields": []
+      },
+      {
+        "source_entity": "Locations",
+        "target_entity": "Location",
+        "field_mappings": [
+          {
+            "source_field": "location_key",
+            "target_field": "location_id",
+            "confidence_score": 0.95,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. Both are primary keys representing location identifiers."
+          },
+          {
+            "source_field": "loc_name",
+            "target_field": "location_name",
+            "confidence_score": 0.95,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. Both fields represent the location name."
+          },
+          {
+            "source_field": "parent_ref",
+            "target_field": "parent_id",
+            "confidence_score": 0.85,
+            "transformation_logic": "direct",
+            "reasoning": "Semantic match. Both fields represent the parent location identifier."
+          },
+          {
+            "source_field": "site",
+            "target_field": "site",
+            "confidence_score": 0.9,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. Both fields represent the site name."
+          },
+          {
+            "source_field": "building",
+            "target_field": "building",
+            "confidence_score": 0.9,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. Both fields represent the building name."
+          },
+          {
+            "source_field": "floor",
+            "target_field": "floor",
+            "confidence_score": 0.9,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. Both fields represent the floor level."
+          }
+        ],
+        "unmapped_source_fields": [],
+        "unmapped_required_target_fields": []
+      },
+      {
+        "source_entity": "Assets",
+        "target_entity": "Asset",
+        "field_mappings": [
+          {
+            "source_field": "asset_no",
+            "target_field": "c_asset_id",
+            "confidence_score": 0.95,
+            "transformation_logic": "uppercase(trim(asset_no))",
+            "reasoning": "Direct semantic match. asset_no is the primary key of source Assets, maps to c_asset_id in target."
+          },
+          {
+            "source_field": "asset_name",
+            "target_field": "asset_name",
+            "confidence_score": 0.95,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. Both fields represent the asset name."
+          },
+          {
+            "source_field": "loc_code",
+            "target_field": "b_location_id",
+            "confidence_score": 0.8,
+            "transformation_logic": "direct",
+            "reasoning": "Semantic match. loc_code represents the location code, maps to b_location_id."
+          },
+          {
+            "source_field": "asset_type",
+            "target_field": "asset_type",
+            "confidence_score": 0.95,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. Both fields represent the asset type."
+          },
+          {
+            "source_field": "status",
+            "target_field": "status",
+            "confidence_score": 0.95,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. Both fields represent the asset status."
+          },
+          {
+            "source_field": "purchase_date",
+            "target_field": "purchase_date",
+            "confidence_score": 0.8,
+            "transformation_logic": "cast(purchase_date, 'date')",
+            "reasoning": "Semantic match. Both fields represent the purchase date. Requires data type conversion."
+          },
+          {
+            "source_field": "cost",
+            "target_field": "cost",
+            "confidence_score": 0.8,
+            "transformation_logic": "cast(cost, 'decimal')",
+            "reasoning": "Semantic match. Both fields represent the cost. Requires data type conversion."
+          }
+        ],
+        "unmapped_source_fields": [],
+        "unmapped_required_target_fields": []
+      },
+      {
+        "source_entity": "WorkOrders",
+        "target_entity": "WorkOrder",
+        "field_mappings": [
+          {
+            "source_field": "wo_id",
+            "target_field": "wo_id",
+            "confidence_score": 0.98,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. Both are primary keys representing work order identifiers."
+          },
+          {
+            "source_field": "equip_id",
+            "target_field": "asset_id",
+            "confidence_score": 0.85,
+            "transformation_logic": "direct",
+            "reasoning": "Semantic match. equip_id likely refers to the asset the work order is for."
+          },
+          {
+            "source_field": "technician_ref",
+            "target_field": "assigned_user",
+            "confidence_score": 0.8,
+            "transformation_logic": "direct",
+            "reasoning": "Semantic match. technician_ref likely refers to the user assigned to the work order."
+          },
+          {
+            "source_field": "status",
+            "target_field": "status",
+            "confidence_score": 0.95,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. Both fields represent the work order status."
+          },
+          {
+            "source_field": "priority",
+            "target_field": "priority",
+            "confidence_score": 0.9,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. Both fields represent the work order priority."
+          },
+          {
+            "source_field": "created_date",
+            "target_field": "created_date",
+            "confidence_score": 0.8,
+            "transformation_logic": "cast(created_date, 'date')",
+            "reasoning": "Semantic match. Both fields represent the creation date. Requires data type conversion."
+          },
+          {
+            "source_field": "closed_date",
+            "target_field": "closed_date",
+            "confidence_score": 0.8,
+            "transformation_logic": "cast(closed_date, 'date')",
+            "reasoning": "Semantic match. Both fields represent the closure date. Requires data type conversion."
+          },
+          {
+            "source_field": "description",
+            "target_field": "description",
+            "confidence_score": 0.9,
+            "transformation_logic": "direct",
+            "reasoning": "Direct semantic match. Both fields represent the work order description."
+          }
+        ],
+        "unmapped_source_fields": [],
+        "unmapped_required_target_fields": []
+      }
+    ],
+    "user_mapping_count": 0,
+    "ai_mapping_count": 27,
+    "_meta": {
+      "saved_at": "2026-06-16T13:29:59.959844",
+      "filename": "mapping_document.json"
+    }
+  },
+  "specification": {
+    "entity_specification": {
+      "User": [
+        {
+          "source_field": "user_id",
+          "target_field": "user_id",
+          "data_type": "VARCHAR(50)",
+          "nullable": false,
+          "validation_rule": "IS_UNIQUE",
+          "transformation": "direct",
+          "business_constraint": "PRIMARY KEY"
+        },
+        {
+          "source_field": "name",
+          "target_field": "full_name",
+          "data_type": "VARCHAR(255)",
+          "nullable": false,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": "NOT NULL"
+        },
+        {
+          "source_field": "role",
+          "target_field": "role",
+          "data_type": "VARCHAR(100)",
+          "nullable": true,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": ""
+        },
+        {
+          "source_field": "email",
+          "target_field": "email",
+          "data_type": "VARCHAR(255)",
+          "nullable": true,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": ""
+        },
+        {
+          "source_field": "department",
+          "target_field": "department",
+          "data_type": "VARCHAR(100)",
+          "nullable": true,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": ""
+        },
+        {
+          "source_field": "active",
+          "target_field": "is_active",
+          "data_type": "BOOLEAN",
+          "nullable": true,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": ""
+        }
+      ],
+      "Location": [
+        {
+          "source_field": "location_key",
+          "target_field": "location_id",
+          "data_type": "VARCHAR(50)",
+          "nullable": false,
+          "validation_rule": "IS_UNIQUE",
+          "transformation": "direct",
+          "business_constraint": "PRIMARY KEY"
+        },
+        {
+          "source_field": "loc_name",
+          "target_field": "location_name",
+          "data_type": "VARCHAR(255)",
+          "nullable": false,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": "NOT NULL"
+        },
+        {
+          "source_field": "parent_ref",
+          "target_field": "parent_id",
+          "data_type": "VARCHAR(50)",
+          "nullable": true,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": ""
+        },
+        {
+          "source_field": "site",
+          "target_field": "site",
+          "data_type": "VARCHAR(100)",
+          "nullable": true,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": ""
+        },
+        {
+          "source_field": "building",
+          "target_field": "building",
+          "data_type": "VARCHAR(100)",
+          "nullable": true,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": ""
+        },
+        {
+          "source_field": "floor",
+          "target_field": "floor",
+          "data_type": "VARCHAR(50)",
+          "nullable": true,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": ""
+        }
+      ],
+      "Asset": [
+        {
+          "source_field": "asset_no",
+          "target_field": "c_asset_id",
+          "data_type": "VARCHAR(50)",
+          "nullable": false,
+          "validation_rule": "IS_UNIQUE",
+          "transformation": "uppercase(trim(asset_no))",
+          "business_constraint": "PRIMARY KEY"
+        },
+        {
+          "source_field": "asset_name",
+          "target_field": "asset_name",
+          "data_type": "VARCHAR(255)",
+          "nullable": false,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": "NOT NULL"
+        },
+        {
+          "source_field": "loc_code",
+          "target_field": "b_location_id",
+          "data_type": "VARCHAR(50)",
+          "nullable": true,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": ""
+        },
+        {
+          "source_field": "asset_type",
+          "target_field": "asset_type",
+          "data_type": "VARCHAR(100)",
+          "nullable": false,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": "NOT NULL"
+        },
+        {
+          "source_field": "status",
+          "target_field": "status",
+          "data_type": "VARCHAR(50)",
+          "nullable": false,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": "NOT NULL"
+        },
+        {
+          "source_field": "purchase_date",
+          "target_field": "purchase_date",
+          "data_type": "DATE",
+          "nullable": true,
+          "validation_rule": "IS_DATE",
+          "transformation": "cast(purchase_date, 'date')",
+          "business_constraint": ""
+        },
+        {
+          "source_field": "cost",
+          "target_field": "cost",
+          "data_type": "DECIMAL(12,2)",
+          "nullable": true,
+          "validation_rule": ">= 0",
+          "transformation": "cast(cost, 'decimal')",
+          "business_constraint": ""
+        }
+      ],
+      "WorkOrder": [
+        {
+          "source_field": "wo_id",
+          "target_field": "wo_id",
+          "data_type": "VARCHAR(50)",
+          "nullable": false,
+          "validation_rule": "IS_UNIQUE",
+          "transformation": "direct",
+          "business_constraint": "PRIMARY KEY"
+        },
+        {
+          "source_field": "equip_id",
+          "target_field": "asset_id",
+          "data_type": "VARCHAR(50)",
+          "nullable": false,
+          "validation_rule": "FOREIGN_KEY(Asset.c_asset_id)",
+          "transformation": "direct",
+          "business_constraint": "NOT NULL"
+        },
+        {
+          "source_field": "technician_ref",
+          "target_field": "assigned_user",
+          "data_type": "VARCHAR(50)",
+          "nullable": true,
+          "validation_rule": "FOREIGN_KEY(User.user_id)",
+          "transformation": "direct",
+          "business_constraint": ""
+        },
+        {
+          "source_field": "status",
+          "target_field": "status",
+          "data_type": "VARCHAR(50)",
+          "nullable": false,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": "NOT NULL"
+        },
+        {
+          "source_field": "priority",
+          "target_field": "priority",
+          "data_type": "VARCHAR(50)",
+          "nullable": true,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": ""
+        },
+        {
+          "source_field": "created_date",
+          "target_field": "created_date",
+          "data_type": "DATE",
+          "nullable": false,
+          "validation_rule": "IS_DATE",
+          "transformation": "cast(created_date, 'date')",
+          "business_constraint": "NOT NULL"
+        },
+        {
+          "source_field": "closed_date",
+          "target_field": "closed_date",
+          "data_type": "DATE",
+          "nullable": true,
+          "validation_rule": "IS_DATE",
+          "transformation": "cast(closed_date, 'date')",
+          "business_constraint": ""
+        },
+        {
+          "source_field": "description",
+          "target_field": "description",
+          "data_type": "VARCHAR(255)",
+          "nullable": true,
+          "validation_rule": "",
+          "transformation": "direct",
+          "business_constraint": ""
+        }
+      ]
+    },
+    "_meta": {
+      "saved_at": "2026-06-16T13:30:44.184681",
+      "filename": "migration_spec.json"
+    }
+  },
+  "readiness": {
+    "readiness_score": 74.7,
+    "readiness_grade": "C",
+    "sub_scores": {
+      "data_quality": 68.0,
+      "mapping_cover": 100.0,
+      "spec_complete": 37.0,
+      "rel_clarity": 85.0
+    },
+    "risk_register": [
+      {
+        "severity": "MEDIUM",
+        "entity": "Assets",
+        "title": "1 orphan record(s) (broken FK references)",
+        "impact": "Records in Assets reference parent IDs that do not exist.",
+        "action": "Resolve missing parent records or nullify FK before loading."
+      },
+      {
+        "severity": "MEDIUM",
+        "entity": "Assets",
+        "title": "Field 'loc_code' contains high null percentage (20.0%).",
+        "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+        "action": "Review source data for this field and apply appropriate cleansing."
+      },
+      {
+        "severity": "MEDIUM",
+        "entity": "Assets",
+        "title": "Field 'status' contains high null percentage (10.0%).",
+        "impact": "Check type NULL_CHECK failed on field 'status'.",
+        "action": "Review source data for this field and apply appropriate cleansing."
+      },
+      {
+        "severity": "MEDIUM",
+        "entity": "Assets",
+        "title": "Referential integrity check failed: 1 orphan records reference invalid 'Locations.location_key' values.",
+        "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'loc_code'.",
+        "action": "Review source data for this field and apply appropriate cleansing."
+      },
+      {
+        "severity": "MEDIUM",
+        "entity": "Users",
+        "title": "Field 'email' contains high null percentage (20.0%).",
+        "impact": "Check type NULL_CHECK failed on field 'email'.",
+        "action": "Review source data for this field and apply appropriate cleansing."
+      },
+      {
+        "severity": "MEDIUM",
+        "entity": "WorkOrders",
+        "title": "Field 'closed_date' contains high null percentage (55.0%).",
+        "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+        "action": "Review source data for this field and apply appropriate cleansing."
+      },
+      {
+        "severity": "MEDIUM",
+        "entity": "Locations",
+        "title": "Unresolved FK candidate(s): ['parent_ref']",
+        "impact": "These fields look like foreign keys but no matching parent entity was found.",
+        "action": "Upload the referenced parent table or confirm the FK is to an external system."
+      },
+      {
+        "severity": "MEDIUM",
+        "entity": "WorkOrders",
+        "title": "Unresolved FK candidate(s): ['equip_id', 'technician_ref']",
+        "impact": "These fields look like foreign keys but no matching parent entity was found.",
+        "action": "Upload the referenced parent table or confirm the FK is to an external system."
+      },
+      {
+        "severity": "LOW",
+        "entity": "User",
+        "title": "Incomplete spec for 'full_name': missing ['validation_rule']",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for User.full_name."
+      },
+      {
+        "severity": "LOW",
+        "entity": "User",
+        "title": "Incomplete spec for 'role': missing ['validation_rule']",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for User.role."
+      },
+      {
+        "severity": "LOW",
+        "entity": "User",
+        "title": "Incomplete spec for 'email': missing ['validation_rule']",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for User.email."
+      },
+      {
+        "severity": "LOW",
+        "entity": "User",
+        "title": "Incomplete spec for 'department': missing ['validation_rule']",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for User.department."
+      },
+      {
+        "severity": "LOW",
+        "entity": "User",
+        "title": "Incomplete spec for 'is_active': missing ['validation_rule']",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for User.is_active."
+      },
+      {
+        "severity": "LOW",
+        "entity": "Location",
+        "title": "Incomplete spec for 'location_name': missing ['validation_rule']",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for Location.location_name."
+      },
+      {
+        "severity": "LOW",
+        "entity": "Location",
+        "title": "Incomplete spec for 'parent_id': missing ['validation_rule']",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for Location.parent_id."
+      },
+      {
+        "severity": "LOW",
+        "entity": "Location",
+        "title": "Incomplete spec for 'site': missing ['validation_rule']",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for Location.site."
+      },
+      {
+        "severity": "LOW",
+        "entity": "Location",
+        "title": "Incomplete spec for 'building': missing ['validation_rule']",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for Location.building."
+      },
+      {
+        "severity": "LOW",
+        "entity": "Location",
+        "title": "Incomplete spec for 'floor': missing ['validation_rule']",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for Location.floor."
+      },
+      {
+        "severity": "LOW",
+        "entity": "Asset",
+        "title": "Incomplete spec for 'asset_name': missing ['validation_rule']",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for Asset.asset_name."
+      },
+      {
+        "severity": "LOW",
+        "entity": "Asset",
+        "title": "Incomplete spec for 'b_location_id': missing ['validation_rule']",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for Asset.b_location_id."
+      },
+      {
+        "severity": "LOW",
+        "entity": "Asset",
+        "title": "Incomplete spec for 'asset_type': missing ['validation_rule']",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for Asset.asset_type."
+      },
+      {
+        "severity": "LOW",
+        "entity": "Asset",
+        "title": "Incomplete spec for 'status': missing ['validation_rule']",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for Asset.status."
+      },
+      {
+        "severity": "LOW",
+        "entity": "WorkOrder",
+        "title": "Incomplete spec for 'status': missing ['validation_rule']",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for WorkOrder.status."
+      },
+      {
+        "severity": "LOW",
+        "entity": "WorkOrder",
+        "title": "Incomplete spec for 'priority': missing ['validation_rule']",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for WorkOrder.priority."
+      },
+      {
+        "severity": "LOW",
+        "entity": "WorkOrder",
+        "title": "Incomplete spec for 'description': missing ['validation_rule']",
+        "impact": "Specification record is missing required contract attributes.",
+        "action": "Manually fill ['validation_rule'] for WorkOrder.description."
+      }
+    ],
+    "risk_summary": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 8,
+      "LOW": 17
+    },
+    "degraded_mode": false,
+    "score_weights": {
+      "data_quality": 0.35,
+      "mapping_cover": 0.35,
+      "spec_complete": 0.2,
+      "rel_clarity": 0.1
+    },
+    "_meta": {
+      "saved_at": "2026-06-16T13:31:47.668536",
+      "filename": "readiness_report.json"
+    }
+  },
+  "plan": {
+    "readiness_score": 74.7,
+    "total_waves": 2,
+    "has_circular_dependencies": false,
+    "waves": [
+      {
+        "wave_number": 1,
+        "entities": [
+          "Users",
+          "Locations",
+          "WorkOrders"
+        ],
+        "risk_items": [
+          {
+            "severity": "MEDIUM",
+            "entity": "Users",
+            "title": "Field 'email' contains high null percentage (20.0%).",
+            "impact": "Check type NULL_CHECK failed on field 'email'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "Locations",
+            "title": "Unresolved FK candidate(s): ['parent_ref']",
+            "impact": "These fields look like foreign keys but no matching parent entity was found.",
+            "action": "Upload the referenced parent table or confirm the FK is to an external system."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "WorkOrders",
+            "title": "Field 'closed_date' contains high null percentage (55.0%).",
+            "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "WorkOrders",
+            "title": "Unresolved FK candidate(s): ['equip_id', 'technician_ref']",
+            "impact": "These fields look like foreign keys but no matching parent entity was found.",
+            "action": "Upload the referenced parent table or confirm the FK is to an external system."
+          }
+        ],
+        "csv_files": [
+          "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\users.csv",
+          "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\locations.csv",
+          "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\workorders.csv"
+        ],
+        "tool_stack": [
+          "Pandas"
+        ],
+        "total_rows": 29,
+        "source_mode": "file",
+        "description": "This wave migrates core operational entities \u2013 Users, Locations, and WorkOrders \u2013 establishing the foundation for field service operations. These entities are grouped together due to their strong interdependencies and common use in downstream processes.",
+        "migration_approach": "A full load to CSV is recommended, with data cleansing applied during the ETL process to handle null values and resolve FK candidates before loading.",
+        "risk_mitigations": [
+          "Implement a data quality rule to flag Users records with missing email addresses for review and potential enrichment.",
+          "Develop a script to populate 'parent_ref' in Locations based on a defined business rule or hierarchy, resolving the FK candidate.",
+          "For WorkOrders, establish a default 'closed_date' value (e.g., current date) or a specific indicator for open orders to address the high null percentage."
+        ]
+      },
+      {
+        "wave_number": 2,
+        "entities": [
+          "Assets"
+        ],
+        "risk_items": [
+          {
+            "severity": "MEDIUM",
+            "entity": "Assets",
+            "title": "1 orphan record(s) (broken FK references)",
+            "impact": "Records in Assets reference parent IDs that do not exist.",
+            "action": "Resolve missing parent records or nullify FK before loading."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "Assets",
+            "title": "Field 'loc_code' contains high null percentage (20.0%).",
+            "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "Assets",
+            "title": "Field 'status' contains high null percentage (10.0%).",
+            "impact": "Check type NULL_CHECK failed on field 'status'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "Assets",
+            "title": "Referential integrity check failed: 1 orphan records reference invalid 'Locations.location_key' values.",
+            "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'loc_code'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          }
+        ],
+        "csv_files": [
+          "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_02\\assets.csv"
+        ],
+        "tool_stack": [
+          "Pandas"
+        ],
+        "total_rows": 10,
+        "source_mode": "file",
+        "description": "This wave focuses on migrating Assets, which are critical for tracking equipment and maintenance history. It's separated from Wave 1 due to the complexity of resolving FK constraints and data quality issues specific to asset records.",
+        "migration_approach": "A full load to CSV is recommended, preceded by a lookup-first approach to validate and correct FK references to Locations before loading.",
+        "risk_mitigations": [
+          "Investigate and correct the orphan records in Assets by either updating the FK values or archiving the records if they are invalid.",
+          "Populate the 'loc_code' field in Assets by matching against the Locations table, using a defined mapping or business rule.",
+          "Define a default 'status' value for Assets with missing status information, ensuring consistency and usability."
+        ]
+      }
+    ],
+    "silver_waves": [
+      {
+        "wave_number": 1,
+        "entities": [
+          "Users",
+          "Locations",
+          "WorkOrders"
+        ],
+        "risk_items": [
+          {
+            "severity": "MEDIUM",
+            "entity": "Users",
+            "title": "Field 'email' contains high null percentage (20.0%).",
+            "impact": "Check type NULL_CHECK failed on field 'email'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "Locations",
+            "title": "Unresolved FK candidate(s): ['parent_ref']",
+            "impact": "These fields look like foreign keys but no matching parent entity was found.",
+            "action": "Upload the referenced parent table or confirm the FK is to an external system."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "WorkOrders",
+            "title": "Field 'closed_date' contains high null percentage (55.0%).",
+            "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "WorkOrders",
+            "title": "Unresolved FK candidate(s): ['equip_id', 'technician_ref']",
+            "impact": "These fields look like foreign keys but no matching parent entity was found.",
+            "action": "Upload the referenced parent table or confirm the FK is to an external system."
+          }
+        ],
+        "csv_files": [
+          "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\users.csv",
+          "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\locations.csv",
+          "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\workorders.csv"
+        ],
+        "tool_stack": [
+          "Pandas"
+        ],
+        "total_rows": 29,
+        "source_mode": "file",
+        "description": "This wave migrates core operational entities \u2013 Users, Locations, and WorkOrders \u2013 establishing the foundation for field service operations. These entities are grouped together due to their strong interdependencies and common use in downstream processes.",
+        "migration_approach": "A full load to CSV is recommended, with data cleansing applied during the ETL process to handle null values and resolve FK candidates before loading.",
+        "risk_mitigations": [
+          "Implement a data quality rule to flag Users records with missing email addresses for review and potential enrichment.",
+          "Develop a script to populate 'parent_ref' in Locations based on a defined business rule or hierarchy, resolving the FK candidate.",
+          "For WorkOrders, establish a default 'closed_date' value (e.g., current date) or a specific indicator for open orders to address the high null percentage."
+        ]
+      },
+      {
+        "wave_number": 2,
+        "entities": [
+          "Assets"
+        ],
+        "risk_items": [
+          {
+            "severity": "MEDIUM",
+            "entity": "Assets",
+            "title": "1 orphan record(s) (broken FK references)",
+            "impact": "Records in Assets reference parent IDs that do not exist.",
+            "action": "Resolve missing parent records or nullify FK before loading."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "Assets",
+            "title": "Field 'loc_code' contains high null percentage (20.0%).",
+            "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "Assets",
+            "title": "Field 'status' contains high null percentage (10.0%).",
+            "impact": "Check type NULL_CHECK failed on field 'status'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          },
+          {
+            "severity": "MEDIUM",
+            "entity": "Assets",
+            "title": "Referential integrity check failed: 1 orphan records reference invalid 'Locations.location_key' values.",
+            "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'loc_code'.",
+            "action": "Review source data for this field and apply appropriate cleansing."
+          }
+        ],
+        "csv_files": [
+          "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_02\\assets.csv"
+        ],
+        "tool_stack": [
+          "Pandas"
+        ],
+        "total_rows": 10,
+        "source_mode": "file",
+        "description": "This wave focuses on migrating Assets, which are critical for tracking equipment and maintenance history. It's separated from Wave 1 due to the complexity of resolving FK constraints and data quality issues specific to asset records.",
+        "migration_approach": "A full load to CSV is recommended, preceded by a lookup-first approach to validate and correct FK references to Locations before loading.",
+        "risk_mitigations": [
+          "Investigate and correct the orphan records in Assets by either updating the FK values or archiving the records if they are invalid.",
+          "Populate the 'loc_code' field in Assets by matching against the Locations table, using a defined mapping or business rule.",
+          "Define a default 'status' value for Assets with missing status information, ensuring consistency and usability."
+        ]
+      }
+    ],
+    "bronze_silver_gold": {
+      "Bronze": {
+        "description": "Raw ingest layer \u2014 all source entities are captured as-is with no wave sequencing.",
+        "entities": [
+          "Users",
+          "Locations",
+          "Assets",
+          "WorkOrders"
+        ],
+        "source_entities": [
+          {
+            "entity_name": "Users",
+            "status": "RAW"
+          },
+          {
+            "entity_name": "Locations",
+            "status": "RAW"
+          },
+          {
+            "entity_name": "Assets",
+            "status": "RAW"
+          },
+          {
+            "entity_name": "WorkOrders",
+            "status": "RAW"
+          }
+        ]
+      },
+      "Silver": {
+        "description": "Wave-sequenced transformation layer \u2014 entities are processed into CSV files in dependency order.",
+        "waves": [
+          {
+            "wave_number": 1,
+            "entities": [
+              "Users",
+              "Locations",
+              "WorkOrders"
+            ],
+            "csv_files": [
+              "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\users.csv",
+              "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\locations.csv",
+              "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\workorders.csv"
+            ],
+            "tool_stack": [
+              "Pandas"
+            ],
+            "total_rows": 29,
+            "source_mode": "file",
+            "risk_items": [
+              {
+                "severity": "MEDIUM",
+                "entity": "Users",
+                "title": "Field 'email' contains high null percentage (20.0%).",
+                "impact": "Check type NULL_CHECK failed on field 'email'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "Locations",
+                "title": "Unresolved FK candidate(s): ['parent_ref']",
+                "impact": "These fields look like foreign keys but no matching parent entity was found.",
+                "action": "Upload the referenced parent table or confirm the FK is to an external system."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "WorkOrders",
+                "title": "Field 'closed_date' contains high null percentage (55.0%).",
+                "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "WorkOrders",
+                "title": "Unresolved FK candidate(s): ['equip_id', 'technician_ref']",
+                "impact": "These fields look like foreign keys but no matching parent entity was found.",
+                "action": "Upload the referenced parent table or confirm the FK is to an external system."
+              }
+            ],
+            "description": "This wave migrates core operational entities \u2013 Users, Locations, and WorkOrders \u2013 establishing the foundation for field service operations. These entities are grouped together due to their strong interdependencies and common use in downstream processes.",
+            "migration_approach": "A full load to CSV is recommended, with data cleansing applied during the ETL process to handle null values and resolve FK candidates before loading.",
+            "risk_mitigations": [
+              "Implement a data quality rule to flag Users records with missing email addresses for review and potential enrichment.",
+              "Develop a script to populate 'parent_ref' in Locations based on a defined business rule or hierarchy, resolving the FK candidate.",
+              "For WorkOrders, establish a default 'closed_date' value (e.g., current date) or a specific indicator for open orders to address the high null percentage."
+            ]
+          },
+          {
+            "wave_number": 2,
+            "entities": [
+              "Assets"
+            ],
+            "csv_files": [
+              "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_02\\assets.csv"
+            ],
+            "tool_stack": [
+              "Pandas"
+            ],
+            "total_rows": 10,
+            "source_mode": "file",
+            "risk_items": [
+              {
+                "severity": "MEDIUM",
+                "entity": "Assets",
+                "title": "1 orphan record(s) (broken FK references)",
+                "impact": "Records in Assets reference parent IDs that do not exist.",
+                "action": "Resolve missing parent records or nullify FK before loading."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "Assets",
+                "title": "Field 'loc_code' contains high null percentage (20.0%).",
+                "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "Assets",
+                "title": "Field 'status' contains high null percentage (10.0%).",
+                "impact": "Check type NULL_CHECK failed on field 'status'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "Assets",
+                "title": "Referential integrity check failed: 1 orphan records reference invalid 'Locations.location_key' values.",
+                "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'loc_code'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              }
+            ],
+            "description": "This wave focuses on migrating Assets, which are critical for tracking equipment and maintenance history. It's separated from Wave 1 due to the complexity of resolving FK constraints and data quality issues specific to asset records.",
+            "migration_approach": "A full load to CSV is recommended, preceded by a lookup-first approach to validate and correct FK references to Locations before loading.",
+            "risk_mitigations": [
+              "Investigate and correct the orphan records in Assets by either updating the FK values or archiving the records if they are invalid.",
+              "Populate the 'loc_code' field in Assets by matching against the Locations table, using a defined mapping or business rule.",
+              "Define a default 'status' value for Assets with missing status information, ensuring consistency and usability."
+            ]
+          }
+        ],
+        "entities": [
+          "Users",
+          "Locations",
+          "WorkOrders",
+          "Assets"
+        ],
+        "csv_files": [
+          "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\users.csv",
+          "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\locations.csv",
+          "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\workorders.csv",
+          "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_02\\assets.csv"
+        ]
+      },
+      "Gold": {
+        "description": "Target load layer \u2014 Silver CSV outputs are loaded into the target database.",
+        "loads": [
+          {
+            "wave_number": 1,
+            "source_csv_files": [
+              "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\users.csv",
+              "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\locations.csv",
+              "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\workorders.csv"
+            ],
+            "target_entities": [
+              "Users",
+              "Locations",
+              "WorkOrders"
+            ],
+            "load_target": "target_db",
+            "load_strategy": "bulk load from Silver CSVs",
+            "risk_items": [
+              {
+                "severity": "MEDIUM",
+                "entity": "Users",
+                "title": "Field 'email' contains high null percentage (20.0%).",
+                "impact": "Check type NULL_CHECK failed on field 'email'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "Locations",
+                "title": "Unresolved FK candidate(s): ['parent_ref']",
+                "impact": "These fields look like foreign keys but no matching parent entity was found.",
+                "action": "Upload the referenced parent table or confirm the FK is to an external system."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "WorkOrders",
+                "title": "Field 'closed_date' contains high null percentage (55.0%).",
+                "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "WorkOrders",
+                "title": "Unresolved FK candidate(s): ['equip_id', 'technician_ref']",
+                "impact": "These fields look like foreign keys but no matching parent entity was found.",
+                "action": "Upload the referenced parent table or confirm the FK is to an external system."
+              }
+            ]
+          },
+          {
+            "wave_number": 2,
+            "source_csv_files": [
+              "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_02\\assets.csv"
+            ],
+            "target_entities": [
+              "Assets"
+            ],
+            "load_target": "target_db",
+            "load_strategy": "bulk load from Silver CSVs",
+            "risk_items": [
+              {
+                "severity": "MEDIUM",
+                "entity": "Assets",
+                "title": "1 orphan record(s) (broken FK references)",
+                "impact": "Records in Assets reference parent IDs that do not exist.",
+                "action": "Resolve missing parent records or nullify FK before loading."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "Assets",
+                "title": "Field 'loc_code' contains high null percentage (20.0%).",
+                "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "Assets",
+                "title": "Field 'status' contains high null percentage (10.0%).",
+                "impact": "Check type NULL_CHECK failed on field 'status'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              },
+              {
+                "severity": "MEDIUM",
+                "entity": "Assets",
+                "title": "Referential integrity check failed: 1 orphan records reference invalid 'Locations.location_key' values.",
+                "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'loc_code'.",
+                "action": "Review source data for this field and apply appropriate cleansing."
+              }
+            ]
+          }
+        ],
+        "target_entities": [
+          "Users",
+          "Locations",
+          "WorkOrders",
+          "Assets"
+        ],
+        "source_csv_files": [
+          "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\users.csv",
+          "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\locations.csv",
+          "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_01\\workorders.csv",
+          "D:\\Hackathon\\Onboardiq-merged\\Onboardiq-merged\\workspaces\\users\\user1\\outputs\\silver\\wave_02\\assets.csv"
+        ]
+      }
+    },
+    "degraded_mode": false,
+    "_meta": {
+      "saved_at": "2026-06-16T13:32:39.819918",
+      "filename": "onboarding_plan.json"
+    }
+  },
+  "meta": {
+    "run_id": "6fb3dcbf-2e58-43aa-82b0-45574c475457",
+    "pipeline_version": "1.0",
+    "status": "RUNNING",
+    "created_at": "2026-06-16T13:28:27.267972+00:00"
+  },
+  "migration": {
+    "status": "FAILED",
+    "error": "CODE_GENERATION_ERROR: parse failed for 'Assets' \u2014 Expecting ',' delimiter: line 5 column 1784 (char 1832)",
+    "llm_trace": {
+      "model": "google.gemma-3-27b-it",
+      "prompt_id": "migration.generator.v4",
+      "temperature": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": 216075
+    }
+  },
+  "review": {},
+  "repair": {},
+  "execution": {},
+  "validation": {},
+  "approval": {},
+  "audit": {
+    "events": [
+      {
+        "agent": "MigrationCodeGenerator",
+        "action": "7a_parse",
+        "status": "failed",
+        "timestamp": "2026-06-16T13:36:20.911082+00:00",
+        "details": {
+          "error": "CODE_GENERATION_ERROR: parse failed for 'Assets' \u2014 Expecting ',' delimiter: line 5 column 1784 (char 1832)",
+          "entity": "Assets"
+        }
+      }
+    ]
+  },
+  "runtime_requirements": {
+    "connection": " Import config in each script as it contains connection parameters. Never hardcode paths.",
+    "duckdb_path": "Connect using duckdb.connect(os.environ['DUCKDB_PATH']). DUCKDB_PATH is already set in env.",
+    "source_data_dir": "Read all source files from context['source_files'] ",
+    "idempotency": "All scripts must be safely re-runnable.",
+    "error_handling": "Capture and log errors with stage classification. Always close connection in finally block."
+  },
+  "operational_requirements": {
+    "logging": "Emit structured JSON log lines for every lifecycle stage.",
+    "stages": [
+      "ingestion_start",
+      "ingestion_end",
+      "transform_start",
+      "transform_end",
+      "load_start",
+      "load_end",
+      "validation_start",
+      "validation_end"
+    ],
+    "metrics": [
+      "run_id",
+      "entity",
+      "stage",
+      "status",
+      "duration_ms",
+      "rows_read",
+      "rows_written",
+      "error_code",
+      "error_message"
+    ],
+    "observability": "Include row-count assertions and stage markers legible to downstream monitoring.",
+    "log_format": "JSON",
+    "log_destination": "stdout"
+  },
+  "username": "user1",
+  "_storage": "<backend.adapters.storage_interface.S3StorageBackend object at 0x00000282DD50B530>"
+}

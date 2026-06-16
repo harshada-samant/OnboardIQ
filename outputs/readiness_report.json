@@ -1,0 +1,211 @@
+{
+  "readiness_score": 71.9,
+  "readiness_grade": "C",
+  "sub_scores": {
+    "data_quality": 68.0,
+    "mapping_cover": 92.6,
+    "spec_complete": 36.0,
+    "rel_clarity": 85.0
+  },
+  "risk_register": [
+    {
+      "severity": "CRITICAL",
+      "entity": "WorkOrders",
+      "title": "1 required target field(s) unmapped: ['assigned_user']",
+      "impact": "Required fields in target schema have no corresponding source data.",
+      "action": "Provide default values, derive from other fields, or clarify with source owner."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Assets",
+      "title": "Field 'loc_code' contains high null percentage (20.0%).",
+      "impact": "Check type NULL_CHECK failed on field 'loc_code'.",
+      "action": "Review source data for this field and apply appropriate cleansing."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Assets",
+      "title": "Field 'status' contains high null percentage (10.0%).",
+      "impact": "Check type NULL_CHECK failed on field 'status'.",
+      "action": "Review source data for this field and apply appropriate cleansing."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Users",
+      "title": "Field 'email' contains high null percentage (20.0%).",
+      "impact": "Check type NULL_CHECK failed on field 'email'.",
+      "action": "Review source data for this field and apply appropriate cleansing."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "WorkOrders",
+      "title": "1 orphan record(s) (broken FK references)",
+      "impact": "Records in WorkOrders reference parent IDs that do not exist.",
+      "action": "Resolve missing parent records or nullify FK before loading."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "WorkOrders",
+      "title": "Field 'closed_date' contains high null percentage (55.0%).",
+      "impact": "Check type NULL_CHECK failed on field 'closed_date'.",
+      "action": "Review source data for this field and apply appropriate cleansing."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "WorkOrders",
+      "title": "Referential integrity check failed: 1 orphan records reference invalid 'Assets.asset_no' values.",
+      "impact": "Check type REFERENTIAL_INTEGRITY failed on field 'equip_id'.",
+      "action": "Review source data for this field and apply appropriate cleansing."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Assets",
+      "title": "Unresolved FK candidate(s): ['loc_code']",
+      "impact": "These fields look like foreign keys but no matching parent entity was found.",
+      "action": "Upload the referenced parent table or confirm the FK is to an external system."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "Locations",
+      "title": "Unresolved FK candidate(s): ['parent_ref']",
+      "impact": "These fields look like foreign keys but no matching parent entity was found.",
+      "action": "Upload the referenced parent table or confirm the FK is to an external system."
+    },
+    {
+      "severity": "MEDIUM",
+      "entity": "WorkOrders",
+      "title": "Unresolved FK candidate(s): ['technician_ref']",
+      "impact": "These fields look like foreign keys but no matching parent entity was found.",
+      "action": "Upload the referenced parent table or confirm the FK is to an external system."
+    },
+    {
+      "severity": "LOW",
+      "entity": "Asset",
+      "title": "Incomplete spec for 'asset_name': missing ['validation_rule']",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for Asset.asset_name."
+    },
+    {
+      "severity": "LOW",
+      "entity": "Asset",
+      "title": "Incomplete spec for 'b_location_id': missing ['validation_rule']",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for Asset.b_location_id."
+    },
+    {
+      "severity": "LOW",
+      "entity": "Asset",
+      "title": "Incomplete spec for 'asset_type': missing ['validation_rule']",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for Asset.asset_type."
+    },
+    {
+      "severity": "LOW",
+      "entity": "Asset",
+      "title": "Incomplete spec for 'status': missing ['validation_rule']",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for Asset.status."
+    },
+    {
+      "severity": "LOW",
+      "entity": "WorkOrder",
+      "title": "Incomplete spec for 'status': missing ['validation_rule']",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for WorkOrder.status."
+    },
+    {
+      "severity": "LOW",
+      "entity": "WorkOrder",
+      "title": "Incomplete spec for 'priority': missing ['validation_rule']",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for WorkOrder.priority."
+    },
+    {
+      "severity": "LOW",
+      "entity": "WorkOrder",
+      "title": "Incomplete spec for 'description': missing ['validation_rule']",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for WorkOrder.description."
+    },
+    {
+      "severity": "LOW",
+      "entity": "User",
+      "title": "Incomplete spec for 'full_name': missing ['validation_rule']",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for User.full_name."
+    },
+    {
+      "severity": "LOW",
+      "entity": "User",
+      "title": "Incomplete spec for 'role': missing ['validation_rule']",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for User.role."
+    },
+    {
+      "severity": "LOW",
+      "entity": "User",
+      "title": "Incomplete spec for 'email': missing ['validation_rule']",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for User.email."
+    },
+    {
+      "severity": "LOW",
+      "entity": "User",
+      "title": "Incomplete spec for 'department': missing ['validation_rule']",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for User.department."
+    },
+    {
+      "severity": "LOW",
+      "entity": "User",
+      "title": "Incomplete spec for 'is_active': missing ['validation_rule']",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for User.is_active."
+    },
+    {
+      "severity": "LOW",
+      "entity": "Location",
+      "title": "Incomplete spec for 'location_name': missing ['validation_rule']",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for Location.location_name."
+    },
+    {
+      "severity": "LOW",
+      "entity": "Location",
+      "title": "Incomplete spec for 'site': missing ['validation_rule']",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for Location.site."
+    },
+    {
+      "severity": "LOW",
+      "entity": "Location",
+      "title": "Incomplete spec for 'building': missing ['validation_rule']",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for Location.building."
+    },
+    {
+      "severity": "LOW",
+      "entity": "Location",
+      "title": "Incomplete spec for 'floor': missing ['validation_rule']",
+      "impact": "Specification record is missing required contract attributes.",
+      "action": "Manually fill ['validation_rule'] for Location.floor."
+    }
+  ],
+  "risk_summary": {
+    "CRITICAL": 1,
+    "HIGH": 0,
+    "MEDIUM": 9,
+    "LOW": 16
+  },
+  "degraded_mode": false,
+  "score_weights": {
+    "data_quality": 0.35,
+    "mapping_cover": 0.35,
+    "spec_complete": 0.2,
+    "rel_clarity": 0.1
+  },
+  "_meta": {
+    "saved_at": "2026-06-16T13:14:20.971141",
+    "filename": "readiness_report.json"
+  }
+}
