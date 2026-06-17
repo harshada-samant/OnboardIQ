@@ -79,6 +79,14 @@ def setup_isolated_workspace():
     update_user_target_schema(user1_id, "target_schema.json")
     config.TARGET_SCHEMA_PATH = target_schema_file
 
+    # Pre-create the output files to allow modification by conversational agent
+    os.makedirs(config.OUTPUT_DIR, exist_ok=True)
+    (config.OUTPUT_DIR / "user_mappings.json").write_text("[]", encoding="utf-8")
+    (config.OUTPUT_DIR / "mapping_document.json").write_text("{}", encoding="utf-8")
+    (config.OUTPUT_DIR / "context_snapshot.json").write_text("{}", encoding="utf-8")
+    (config.OUTPUT_DIR / "pending_mapping_action.json").write_text("{}", encoding="utf-8")
+    (config.MIGRATION_SPEC_PATH).write_text("{}", encoding="utf-8")
+
     yield
 
     # Restore configuration and clean temp directory
@@ -314,4 +322,86 @@ def test_robust_closing_tags():
     assert action_single["action"] == "remove"
     assert "Some explanation." in clean_single
     assert "Closing note." in clean_single
+
+
+def test_conversational_agent_cannot_create_new_files():
+    # Delete user_mappings.json to test that conversational agent cannot create it
+    user_mappings_path = Path(config.OUTPUT_DIR) / "user_mappings.json"
+    if user_mappings_path.exists():
+        user_mappings_path.unlink()
+        
+    action = {
+        "action": "add",
+        "source_entity": "Assets",
+        "source_field": "asset_no",
+        "target_entity": "Asset",
+        "target_field": "asset_id"
+    }
+    
+    # Discovery completed context so that it does not get filtered out
+    context = {
+        "entity_catalog": {
+            "entities": [
+                {
+                    "entity_name": "Assets",
+                    "fields": [{"name": "asset_no", "dtype": "string"}]
+                }
+            ]
+        }
+    }
+    
+    with pytest.raises(PermissionError) as exc_info:
+        _handle_mapping_action(action, context, verbose=False)
+    assert "Creation of new file" in str(exc_info.value)
+    assert "is forbidden" in str(exc_info.value)
+
+
+def test_conversational_agent_context_filtering():
+    from backend.agents.conversational_assistant import filter_context_in_place
+    
+    # Context with only discovery completed
+    context = {
+        "entity_catalog": {
+            "entities": [{"entity_name": "Assets"}]
+        },
+        "quality_report": {
+            "profile_summary": {"total_records_analyzed": 100}
+        },
+        "mappings": {
+            "mappings": [{"source_entity": "Assets"}]
+        },
+        # specification not executed
+        "specification": [{"target_field": "asset_id"}], # Should be filtered out because mapping completed but spec not run in order? No, if spec is populated, it means it completed. Let's test that yet-to-execute keys are empty.
+        "plan": {"waves": []}, # Let's assume plan has waves, but specification was empty
+    }
+    
+    # If specification is empty, then subsequent keys (plan, readiness, etc.) should be filtered out
+    test_context = {
+        "entity_catalog": {
+            "entities": [{"entity_name": "Assets"}]
+        },
+        "quality_report": {
+            "profile_summary": {"total_records_analyzed": 100}
+        },
+        "mappings": {
+            "mappings": [{"source_entity": "Assets"}]
+        },
+        "specification": [], # Empty means yet to execute
+        "readiness": {"score": 90}, # Yet to execute but populated (should be filtered)
+        "plan": {"waves": []}, # Yet to execute but populated (should be filtered)
+    }
+    
+    filter_context_in_place(test_context)
+    
+    # Discovery, Profiling, Mapping should be preserved
+    assert len(test_context["entity_catalog"]["entities"]) == 1
+    assert test_context["quality_report"]["profile_summary"]["total_records_analyzed"] == 100
+    assert len(test_context["mappings"]["mappings"]) == 1
+    
+    # Specification was empty, so it remains empty/cleared
+    assert test_context["specification"] == []
+    # Readiness and plan should be cleared because specification was not completed
+    assert test_context["readiness"] == {}
+    assert test_context["plan"] == {}
+
 
