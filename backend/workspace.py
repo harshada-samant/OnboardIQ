@@ -44,3 +44,51 @@ def ensure_user_workspace(username: str) -> dict:
     Ensures that a user's workspace exists. Safe to call multiple times.
     """
     return create_user_workspace(username)
+
+
+def archive_chat_history(username: str) -> None:
+    """
+    Archives the current active chat_history.json to chat_history_backend.json (backend-only)
+    and resets chat_history.json to an empty list.
+    """
+    paths = get_user_workspace(username)
+    chat_file = paths["chat_history"]
+    if chat_file.exists():
+        try:
+            with open(chat_file, "r", encoding="utf-8") as f:
+                history = json.load(f)
+            
+            if history:
+                # Backend-only archive file path
+                archive_file = paths["root"] / "chat_history_backend.json"
+                
+                # Load existing archive or initialize empty list
+                archive_history = []
+                if archive_file.exists():
+                    try:
+                        with open(archive_file, "r", encoding="utf-8") as f:
+                            archive_history = json.load(f)
+                    except Exception:
+                        pass
+                
+                # Append the session history along with a timestamp
+                from datetime import datetime, timezone
+                session_entry = {
+                    "session_end_time": datetime.now(timezone.utc).isoformat(),
+                    "messages": history
+                }
+                archive_history.append(session_entry)
+                
+                # Save to backend archive
+                with open(archive_file, "w", encoding="utf-8") as f:
+                    json.dump(archive_history, f, indent=2)
+                print(f"[chat] Archived {len(history)} messages for user {username} to {archive_file}")
+        except Exception as e:
+            print(f"[chat] Error archiving chat history: {e}")
+        
+        # Reset active chat history file to empty list
+        try:
+            with open(chat_file, "w", encoding="utf-8") as f:
+                json.dump([], f, indent=2)
+        except Exception as e:
+            print(f"[chat] Error resetting chat history: {e}")

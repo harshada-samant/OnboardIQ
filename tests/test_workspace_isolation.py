@@ -55,7 +55,7 @@ def test_workspace_isolation():
 
     # 6. Test Idempotency (repeated calls must not overwrite files)
     print("Writing dummy message to user1's chat history...")
-    dummy_message = [{"role": "user", "content": "Hello World"}]
+    dummy_message = [{"role": "user", "content": "Hello !!!"}]
     with open(paths_user1["chat_history"], "w") as f:
         json.dump(dummy_message, f, indent=2)
         
