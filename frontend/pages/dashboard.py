@@ -645,7 +645,7 @@ async def dashboard_page(client: Client):
                                 refresh_action_button()
                                 refresh_outputs()
                             else:
-                                ui.notify(f"{display_step} failed: {status_data.get('error_message', 'Unknown error')}", type='negative')
+                                ui.notify(f"Pipeline execution failed: {status_data.get('error_message', 'Unknown error')}", type='negative')
                             refresh_outputs() # Refresh Output Files list
                             
                     except Exception as ex:
