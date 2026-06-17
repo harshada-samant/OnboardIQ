@@ -301,6 +301,9 @@ def login_page():
         
         user_record = authenticate_user(user, pwd)
         if user_record:
+            from backend.workspace import archive_chat_history
+            archive_chat_history(user_record['username'])
+            
             ui.run_javascript("sessionStorage.setItem('session_active', 'true');")
             app.storage.user['authenticated'] = True
             app.storage.user['user_id'] = user_record['id']

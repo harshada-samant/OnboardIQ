@@ -132,6 +132,10 @@ async def dashboard_page(client: Client):
 
     def handle_logout():
         ui.run_javascript("sessionStorage.removeItem('session_active');")
+        username = app.storage.user.get('username')
+        if username:
+            from backend.workspace import archive_chat_history
+            archive_chat_history(username)
         app.storage.user.clear()
         ui.navigate.to('/login')
 
