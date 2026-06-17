@@ -1,0 +1,37 @@
+[
+  {
+    "session_end_time": "2026-06-17T05:23:58.021380+00:00",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hello World"
+      }
+    ]
+  },
+  {
+    "session_end_time": "2026-06-17T05:24:36.439441+00:00",
+    "messages": [
+      {
+        "role": "user",
+        "content": "explain me mapping"
+      },
+      {
+        "role": "assistant",
+        "content": "I can explain the current mappings. We are migrating data from four entities: Users, Locations, Assets, and WorkOrders. Each entity has several fields mapped to corresponding fields in the target system (User, Location, Asset, and WorkOrder respectively).\n\nFor example, `Users.user_id` is mapped to `User.user_id` with 98% confidence, and `Assets.asset_no` is mapped to `Asset.c_asset_id` with 95% confidence.\n\nDo you want me to elaborate on the mappings for a specific entity, or perhaps discuss the confidence scores associated with these mappings?"
+      }
+    ]
+  },
+  {
+    "session_end_time": "2026-06-17T05:30:33.517228+00:00",
+    "messages": [
+      {
+        "role": "user",
+        "content": "do not explain me anything"
+      },
+      {
+        "role": "assistant",
+        "content": "Okay, I'm ready."
+      }
+    ]
+  }
+]

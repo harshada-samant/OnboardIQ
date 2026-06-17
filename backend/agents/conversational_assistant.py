@@ -97,6 +97,137 @@ IMPORTANT:
 """
 
 
+# ── context filter ────────────────────────────────────────────────────────────
+
+def filter_context_in_place(context: dict) -> None:
+    """
+    Modifies context in place to remove/clear keys of agents that have not yet completed execution.
+    Only context for agents that have completed execution is retained.
+    """
+    if not context:
+        return
+
+    # 1. Discovery Agent (Agent 1)
+    discovery_completed = False
+    entity_catalog = context.get("entity_catalog")
+    if isinstance(entity_catalog, dict) and entity_catalog.get("entities"):
+        discovery_completed = True
+
+    # 2. Profiling Agent (Agent 2)
+    profiling_completed = False
+    quality_report = context.get("quality_report")
+    if isinstance(quality_report, dict) and quality_report.get("profile_summary"):
+        profiling_completed = True
+
+    # 3. Mapping Agent (Agent 3)
+    mapping_completed = False
+    mappings_val = context.get("mappings")
+    if isinstance(mappings_val, dict):
+        if mappings_val.get("mappings"):
+            mapping_completed = True
+    elif isinstance(mappings_val, list):
+        if mappings_val:
+            mapping_completed = True
+
+    # 4. Specification Agent (Agent 4)
+    specification_completed = bool(context.get("specification"))
+
+    # 5. Readiness Agent (Agent 5)
+    readiness_completed = bool(context.get("readiness"))
+
+    # 6. Planning Agent (Agent 6)
+    planning_completed = bool(context.get("plan"))
+
+    # 7. Migration Code Generator (Agent 7)
+    migration_completed = False
+    migration_val = context.get("migration")
+    if isinstance(migration_val, dict):
+        status = migration_val.get("status")
+        if status and status != "NOT_STARTED":
+            migration_completed = True
+
+    # 8. Migration Reviewer (Agent 8)
+    review_completed = False
+    review_val = context.get("review")
+    if isinstance(review_val, dict) and review_val.get("status"):
+        review_completed = True
+
+    # 9. Migration Repair Agent (Agent 9)
+    repair_completed = False
+    repair_val = context.get("repair")
+    if isinstance(repair_val, dict) and repair_val.get("status"):
+        repair_completed = True
+
+    # 10. Migration Execution Agent (Agent 10)
+    execution_completed = False
+    execution_val = context.get("execution")
+    if isinstance(execution_val, dict) and execution_val.get("status"):
+        execution_completed = True
+
+    # 11. Migration Validation Agent (Agent 11)
+    validation_completed = False
+    validation_val = context.get("validation")
+    if isinstance(validation_val, dict) and validation_val.get("status"):
+        validation_completed = True
+
+    # 12. Migration Approval Agent (Agent 12)
+    approval_completed = False
+    approval_val = context.get("approval")
+    if isinstance(approval_val, dict) and approval_val.get("status"):
+        approval_completed = True
+
+    # Enforce order: if a stage has not completed, subsequent stages are also not completed
+    if not discovery_completed:
+        profiling_completed = False
+    if not profiling_completed:
+        mapping_completed = False
+    if not mapping_completed:
+        specification_completed = False
+    if not specification_completed:
+        readiness_completed = False
+    if not readiness_completed:
+        planning_completed = False
+    if not planning_completed:
+        migration_completed = False
+    if not migration_completed:
+        review_completed = False
+    if not review_completed:
+        repair_completed = False
+    if not repair_completed:
+        execution_completed = False
+    if not execution_completed:
+        validation_completed = False
+    if not validation_completed:
+        approval_completed = False
+
+    # Clear/reset keys for agents that have not completed
+    if not discovery_completed:
+        context["entity_catalog"] = {}
+        context["file_registry"] = []
+    if not profiling_completed:
+        context["quality_report"] = {}
+    if not mapping_completed:
+        context["mappings"] = {} if isinstance(context.get("mappings"), dict) else []
+    if not specification_completed:
+        context["specification"] = [] if isinstance(context.get("specification"), list) else {}
+    if not readiness_completed:
+        context["readiness"] = {}
+    if not planning_completed:
+        context["plan"] = {}
+    if not migration_completed:
+        context["migration"] = {"status": "NOT_STARTED"}
+    if not review_completed:
+        context["review"] = {}
+    if not repair_completed:
+        context["repair"] = {}
+    if not execution_completed:
+        context["execution"] = {}
+    if not validation_completed:
+        context["validation"] = {}
+    if not approval_completed:
+        context["approval"] = {}
+
+
 # ── context summariser ────────────────────────────────────────────────────────
 
 def _build_context_summary(context: dict) -> str:
@@ -104,6 +235,7 @@ def _build_context_summary(context: dict) -> str:
     Creates a compact text summary of all pipeline outputs to include
     in every Groq call. Keeps the prompt lean but informative.
     """
+    filter_context_in_place(context)
     lines = ["=== PIPELINE CONTEXT ===\n"]
 
     # Entity catalog
@@ -279,6 +411,7 @@ def check_pending_confirmation(user_input: str, context: dict, verbose: bool = T
     If the user input matches a confirmation (e.g. 'yes'), advances the confirmation state.
     Returns the response message if handled, or None if the normal LLM flow should run.
     """
+    filter_context_in_place(context)
     pending_path = Path(config.OUTPUT_DIR) / "pending_mapping_action.json"
     if not pending_path.exists():
         return None
@@ -314,6 +447,8 @@ def check_pending_confirmation(user_input: str, context: dict, verbose: bool = T
         # Increment to 2
         pending["confirmations_received"] = 2
         try:
+            if not pending_path.exists():
+                raise PermissionError(f"Access denied: Creation of new file '{pending_path}' is forbidden. Conversational agent can only modify existing files.")
             with open(pending_path, "w", encoding="utf-8") as f:
                 json.dump(pending, f, indent=2)
         except Exception as e:
@@ -340,6 +475,7 @@ def _extract_and_process_mapping_action(reply: str, context: dict, verbose: bool
     Otherwise, handles it immediately.
     Returns (clean_reply, status_msg).
     """
+    filter_context_in_place(context)
     action, clean_reply = _extract_mapping_action(reply)
     if not action:
         return clean_reply, ""
@@ -349,6 +485,8 @@ def _extract_and_process_mapping_action(reply: str, context: dict, verbose: bool
         # Save to pending file
         pending_path = Path(config.OUTPUT_DIR) / "pending_mapping_action.json"
         os.makedirs(config.OUTPUT_DIR, exist_ok=True)
+        if not pending_path.exists():
+            raise PermissionError(f"Access denied: Creation of new file '{pending_path}' is forbidden. Conversational agent can only modify existing files.")
         pending_data = {
             "action": action,
             "confirmations_received": 1
@@ -371,8 +509,9 @@ def _extract_and_process_mapping_action(reply: str, context: dict, verbose: bool
 
 def _handle_mapping_action(action: dict, context: dict, verbose: bool) -> str:
     """Execute the mapping action and return a status message."""
+    filter_context_in_place(context)
     act = action.get("action", "add")
-    schema_keys = {"source_files", "entity_catalog", "file_registry", "quality_report", "mappings", "specification", "readiness", "plan"}
+    schema_keys = {"source_files", "entity_catalog", "file_registry", "quality_report", "mappings", "specification", "readiness", "plan", "migration", "review", "repair", "execution", "validation", "approval"}
 
     # Strict path permission checks: only allow modifications inside the user's isolated outputs folder
     target_paths = [
@@ -384,6 +523,8 @@ def _handle_mapping_action(action: dict, context: dict, verbose: bool) -> str:
     for p in target_paths:
         if not is_safe_output_path(p):
             raise PermissionError(f"Access denied: Modification of path '{p}' outside of user output directory is forbidden.")
+        if not os.path.exists(p):
+            raise PermissionError(f"Access denied: Creation of new file '{p}' is forbidden. Conversational agent can only modify existing files.")
 
     if act == "add":
         entry = add_user_mapping(
@@ -397,13 +538,7 @@ def _handle_mapping_action(action: dict, context: dict, verbose: bool) -> str:
         # Re-run mapping agent to merge this into the mapping document
         run_mapping_agent(context, verbose=False)
         
-        # Remove cached specification to force rebuild
-        spec_path = str(config.MIGRATION_SPEC_PATH)
-        if os.path.exists(spec_path):
-            try:
-                os.remove(spec_path)
-            except Exception:
-                pass
+        # We do not delete spec_path here to avoid deleting and creating files.
         
         # Re-run specification agent to update data contracts based on new mappings
         run_specification_agent(context, verbose=False)
@@ -430,13 +565,7 @@ def _handle_mapping_action(action: dict, context: dict, verbose: bool) -> str:
         if removed:
             run_mapping_agent(context, verbose=False)
             
-            # Remove cached specification to force rebuild
-            spec_path = str(config.MIGRATION_SPEC_PATH)
-            if os.path.exists(spec_path):
-                try:
-                    os.remove(spec_path)
-                except Exception:
-                    pass
+            # We do not delete spec_path here to avoid deleting and creating files.
             
             # Re-run specification agent to update data contracts based on new mappings
             run_specification_agent(context, verbose=False)
@@ -485,6 +614,7 @@ def start_chat(context: dict, verbose: bool = True):
     Launches the interactive chat session.
     Blocks until the user types 'exit' or 'quit'.
     """
+    filter_context_in_place(context)
     print("\n" + "=" * 60)
     print("  ONBOARDIQ CONVERSATIONAL ASSISTANT")
     print("=" * 60)
@@ -496,7 +626,7 @@ def start_chat(context: dict, verbose: bool = True):
     print("  Type 'exit' to quit.\n")
 
     # ── failsafe mechanism ───────────────────────────────────────────────────
-    schema_keys = {"source_files", "entity_catalog", "file_registry", "quality_report", "mappings", "specification", "readiness", "plan"}
+    schema_keys = {"source_files", "entity_catalog", "file_registry", "quality_report", "mappings", "specification", "readiness", "plan", "migration", "review", "repair", "execution", "validation", "approval"}
     snapshot_path = str(config.CONTEXT_SNAPSHOT_PATH)
     if not context or not context.get("entity_catalog"):
         if os.path.exists(snapshot_path):
@@ -508,6 +638,7 @@ def start_chat(context: dict, verbose: bool = True):
                     for k in schema_keys:
                         if k in restored:
                             context[k] = restored[k]
+                filter_context_in_place(context)
                 if verbose:
                     print("  [Failsafe] Recovery successful. Loaded context snapshot from disk.")
             except Exception as e:
@@ -560,7 +691,7 @@ def start_chat(context: dict, verbose: bool = True):
             continue
 
         if user_input.lower() in {"show plan", "plan", "view plan"}:
-            plan = context.get("plan") or load_output("onboarding_plan.json")
+            plan = context.get("plan")
             if not plan or "error" in plan:
                 print("\n[Assistant] No saved onboarding plan found yet.\n")
             else:
@@ -649,6 +780,7 @@ if __name__ == "__main__":
         ("entity_catalog.json",   "entity_catalog"),
         ("quality_report.json",   "quality_report"),
         ("mapping_document.json", "mappings"),
+        ("onboarding_plan.json",  "plan"),
     ]:
         result = load_output(fname)
         if "error" not in result:
