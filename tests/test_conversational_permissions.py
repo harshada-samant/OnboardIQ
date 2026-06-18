@@ -325,7 +325,7 @@ def test_robust_closing_tags():
 
 
 def test_conversational_agent_cannot_create_new_files():
-    # Delete user_mappings.json to test that conversational agent cannot create it
+    # 1. Verify that user_mappings.json is allowed to be missing initially and is created successfully
     user_mappings_path = Path(config.OUTPUT_DIR) / "user_mappings.json"
     if user_mappings_path.exists():
         user_mappings_path.unlink()
@@ -350,6 +350,16 @@ def test_conversational_agent_cannot_create_new_files():
         }
     }
     
+    # This should succeed and create user_mappings.json
+    res = _handle_mapping_action(action, context, verbose=False)
+    assert "Mapping saved" in res
+    assert user_mappings_path.exists()
+
+    # 2. Verify that deleting another required file (like migration_spec.json) fails with PermissionError
+    migration_spec_path = Path(config.MIGRATION_SPEC_PATH)
+    if migration_spec_path.exists():
+        migration_spec_path.unlink()
+
     with pytest.raises(PermissionError) as exc_info:
         _handle_mapping_action(action, context, verbose=False)
     assert "Creation of new file" in str(exc_info.value)
