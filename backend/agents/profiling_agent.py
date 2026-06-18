@@ -9,6 +9,7 @@ Uses python/pandas for deterministic, accurate calculation.
 
 import os
 import sys
+import json
 import pandas as pd
 from tools.output_tools import save_output
 
@@ -25,6 +26,36 @@ def _resolve_file_path(file_name: str, source_files: list) -> str:
             return path_str
     # Fallback to local user uploads folder
     return str(config.INPUT_DIR / file_name)
+
+
+def _canonical_entity_name(name: str) -> str:
+    raw = (name or "").strip()
+    if not raw:
+        return raw
+    lowered = raw.lower()
+    if lowered.endswith("ies"):
+        return raw[:-3] + "y"
+    if lowered.endswith("s") and len(raw) > 1:
+        return raw[:-1]
+    return raw
+
+
+def _load_target_schema() -> dict:
+    try:
+        with open(config.TARGET_SCHEMA_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _field_required(entity_name: str, field_name: str, target_schema: dict) -> bool | None:
+    entity_schema = target_schema.get(entity_name) or target_schema.get(_canonical_entity_name(entity_name))
+    if not isinstance(entity_schema, dict):
+        return None
+    field_schema = entity_schema.get(field_name)
+    if not isinstance(field_schema, dict):
+        return None
+    return bool(field_schema.get("required", False))
 
 
 
@@ -87,6 +118,7 @@ def run_profiling_agent(context: dict, verbose: bool = True) -> dict:
     entity_catalog = context.get("entity_catalog", {})
     file_registry  = context.get("file_registry", [])
     source_files   = context.get("source_files", [])
+    target_schema  = _load_target_schema()
 
     if not entity_catalog or not file_registry:
         print("  x Error: Discovery metadata missing in context. Run Discovery Agent first.")
@@ -123,6 +155,15 @@ def run_profiling_agent(context: dict, verbose: bool = True) -> dict:
         # Look up primary key in catalog
         entity_info = entity_map.get(logical_name.lower(), {})
         pk = entity_info.get("primary_key")
+        entity_required_fields = set()
+        if isinstance(target_schema, dict):
+            schema_entity = target_schema.get(logical_name) or target_schema.get(_canonical_entity_name(logical_name))
+            if isinstance(schema_entity, dict):
+                entity_required_fields = {
+                    field_name
+                    for field_name, field_schema in schema_entity.items()
+                    if isinstance(field_schema, dict) and field_schema.get("required", False)
+                }
 
         # 2. Setup audit schema
         table_audit = {
@@ -146,9 +187,13 @@ def run_profiling_agent(context: dict, verbose: bool = True) -> dict:
             total_null_cells     += null_count
 
             # Null check assertion
+            required_field = _field_required(logical_name, col, target_schema)
             if null_pct == 0.0:
                 chk_status = "PASS"
                 chk_msg    = f"Field '{col}' has no missing values."
+            elif required_field is False:
+                chk_status = "WARNING"
+                chk_msg    = f"Optional field '{col}' contains {null_pct}% null values."
             elif null_pct < 10.0:
                 chk_status = "WARNING"
                 chk_msg    = f"Field '{col}' contains {null_pct}% null values."
@@ -231,9 +276,13 @@ def run_profiling_agent(context: dict, verbose: bool = True) -> dict:
 
                     table_audit["orphan_records_count"] += int(orphan_count)
 
+                    required_fk = _field_required(logical_name, from_field, target_schema)
                     if orphan_count == 0:
                         ref_status = "PASS"
                         ref_msg    = f"Referential integrity verified: {logical_name}.{from_field} -> {to_entity}.{to_field}."
+                    elif required_fk is False:
+                        ref_status = "WARNING"
+                        ref_msg    = f"Optional referential link has {orphan_count} orphan record(s): {logical_name}.{from_field} -> {to_entity}.{to_field}."
                     else:
                         ref_status = "FAIL"
                         ref_msg    = f"Referential integrity check failed: {orphan_count} orphan records reference invalid '{to_entity}.{to_field}' values."

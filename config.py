@@ -39,6 +39,24 @@ def get_provider_name() -> str:
     return "Groq" if LLM_PROVIDER == "groq" else "Bedrock"
 
 
+def normalize_groq_model_id(model_id: str | None) -> str:
+    """
+    Return a supported Groq model id.
+
+    The workspace .env can still contain older decommissioned model names, so we
+    keep a small compatibility shim here to avoid breaking every LLM-backed
+    agent on startup.
+    """
+    candidate = (model_id or "").strip()
+    deprecated = {
+        "llama3-70b-8192",
+        "llama3-8b-8192",
+    }
+    if not candidate or candidate.lower() in deprecated:
+        return "llama-3.3-70b-versatile"
+    return candidate
+
+
 def set_user_workspace(username: str) -> None:
     """
     Dynamically configures active paths (INPUT_DIR, OUTPUT_DIR, and all specific report paths)
@@ -344,8 +362,9 @@ class BedrockOrGroqClientWrapper:
             content = msg.get("content", "")
             groq_messages.append({"role": role, "content": content})
 
-        # Use Llama 3.3 70b as the default, or another configured model
-        groq_model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+        # Use a supported Groq model; fall back if the workspace env still
+        # carries a deprecated model id.
+        groq_model = normalize_groq_model_id(os.getenv("GROQ_MODEL"))
 
         # 2. Call Groq Completion API
         try:

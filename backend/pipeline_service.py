@@ -19,7 +19,7 @@ from typing import Optional
 import config
 import backend.workspace as workspace
 from backend.database import get_username_by_id
-from backend.execution_store import get_execution
+from backend.execution_store import get_execution, start_execution
 from backend.pipeline_executor import run_pipeline
 from backend.adapters.s3_source_adapter import S3SourceAdapter
 from backend.adapters.storage_interface import LocalStorageBackend, S3StorageBackend
@@ -38,6 +38,7 @@ def start_pipeline(user_id: int) -> str:
     Returns the execution ID immediately.
     """
     execution_id = str(uuid.uuid4())
+    start_execution(execution_id, user_id, status="starting")
     thread = threading.Thread(
         target=run_pipeline,
         args=(user_id, execution_id),
@@ -57,7 +58,8 @@ def get_execution_status(execution_id: str) -> dict:
         return {
             "status": record["status"],
             "progress": record["progress"],
-            "current_step": record["current_step"]
+            "current_step": record["current_step"],
+            "error_message": record.get("error_message")
         }
     
     return {
@@ -344,6 +346,7 @@ def start_pipeline_step(user_id: int, step_name: str) -> str:
     """
     normalized_step = step_name.replace(" ", "")
     execution_id = str(uuid.uuid4())
+    start_execution(execution_id, user_id, status="starting")
     thread = threading.Thread(
         target=run_pipeline,
         args=(user_id, execution_id, normalized_step),

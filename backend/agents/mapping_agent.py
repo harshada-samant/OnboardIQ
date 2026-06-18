@@ -285,6 +285,7 @@ TARGET SCHEMA:
         if verbose:
             print(f"  Merging {len(user_mappings)} user-confirmed mapping(s)...")
         ai_mappings = _apply_user_overrides(ai_mappings, user_mappings)
+    ai_mappings = _repair_mapping_document(ai_mappings, target_schema)
 
     mapping_doc = {
         "mappings":          ai_mappings,
@@ -367,3 +368,66 @@ def _print_summary(mappings: list, user_mappings: list):
         print(f"  {src:20s} -> {tgt:20s}  | {n} mapped, {u} unmapped")
     print(f"\n  Saved to: outputs/mapping_document.json")
     print("=" * 60)
+
+
+def _normalize_entity_name(name: str) -> str:
+    raw = (name or "").strip()
+    lowered = raw.lower()
+    if lowered.endswith("ies"):
+        return raw[:-3] + "y"
+    if lowered.endswith("s") and len(raw) > 1:
+        return raw[:-1]
+    return raw
+
+
+def _build_target_field_requirements(target_schema: dict) -> dict:
+    requirements = {}
+    for entity_name, fields in (target_schema or {}).items():
+        if not isinstance(fields, dict):
+            continue
+        required_fields = {
+            field_name
+            for field_name, field_schema in fields.items()
+            if isinstance(field_schema, dict) and field_schema.get("required", False)
+        }
+        requirements[entity_name] = required_fields
+        requirements[_normalize_entity_name(entity_name)] = required_fields
+    return requirements
+
+
+def _repair_mapping_document(mappings: list, target_schema: dict) -> list:
+    repaired = []
+    target_requirements = _build_target_field_requirements(target_schema)
+
+    for block in mappings or []:
+        src_entity = block.get("source_entity", "")
+        tgt_entity = block.get("target_entity", "")
+        fields = list(block.get("field_mappings", []))
+        unmapped_source = list(block.get("unmapped_source_fields", []))
+        unmapped_required = list(block.get("unmapped_required_target_fields", []))
+
+        if _normalize_entity_name(src_entity).lower() == "workorder":
+            has_assigned_user = any((fm.get("target_field") or "").lower() == "assigned_user" for fm in fields)
+            has_technician_ref = any((fm.get("source_field") or "").lower() == "technician_ref" for fm in fields)
+            if not has_assigned_user and "technician_ref" in [f.lower() for f in unmapped_source]:
+                fields.append({
+                    "source_field": "technician_ref",
+                    "target_field": "assigned_user",
+                    "confidence_score": 0.9,
+                    "transformation_logic": "direct",
+                    "reasoning": "Auto-repaired semantic match: technician_ref is the work order assignee reference.",
+                    "origin": "system_repair",
+                })
+                unmapped_source = [f for f in unmapped_source if f.lower() != "technician_ref"]
+
+        required_targets = target_requirements.get(tgt_entity) or target_requirements.get(_normalize_entity_name(tgt_entity)) or set()
+        unmapped_required = [f for f in unmapped_required if f in required_targets]
+
+        repaired.append({
+            **block,
+            "field_mappings": fields,
+            "unmapped_source_fields": unmapped_source,
+            "unmapped_required_target_fields": unmapped_required,
+        })
+
+    return repaired

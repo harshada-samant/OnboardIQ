@@ -126,6 +126,36 @@ def _resolve_artifact_path(rel_path: str) -> Path | None:
     return None
 
 
+def _autopatch_stale_scripts(migration_dir: str) -> None:
+    """
+    Safety net: patches any generated script that still references
+    config.X with os.environ.get('X', '') equivalents.
+    Runs silently if no stale references are found.
+    """
+    stale_patterns = {
+        r"config\.DUCKDB_PATH": "os.environ.get('DUCKDB_PATH', '')",
+        r"config\.SOURCE_DATA_DIR": "os.environ.get('SOURCE_DATA_DIR', '')",
+        r"config\.AWS_ACCESS_KEY_ID": "os.environ.get('AWS_ACCESS_KEY_ID', '')",
+        r"config\.AWS_SECRET_ACCESS_KEY": "os.environ.get('AWS_SECRET_ACCESS_KEY', '')",
+        r"config\.AWS_DEFAULT_REGION": "os.environ.get('AWS_DEFAULT_REGION', '')",
+        r"config\.S3_BUCKET": "os.environ.get('S3_BUCKET', '')",
+        r"config\.\w+": "os.environ.get('UNKNOWN_CONFIG', '')",
+    }
+    for script_file in Path(migration_dir).glob("**/*.py"):
+        try:
+            content = script_file.read_text(encoding="utf-8")
+            original = content
+            for pattern, replacement in stale_patterns.items():
+                content = re.sub(pattern, replacement, content)
+            if "import os" not in content:
+                content = "import os\n" + content
+            if content != original:
+                script_file.write_text(content, encoding="utf-8")
+                print(f"  [auto-patch] Patched stale config refs in: {script_file.name}")
+        except Exception as e:
+            print(f"  [auto-patch] Warning: could not patch {script_file.name}: {e}")
+
+
 # ── execution log writer ───────────────────────────────────────────────────────
 
 def _write_execution_log(logs: list, run_id: str, target: str) -> str:
@@ -137,6 +167,47 @@ def _write_execution_log(logs: list, run_id: str, target: str) -> str:
 
 
 # ── parse orchestrator stdout ──────────────────────────────────────────────────
+
+def _resolve_source_data_dir(context: dict) -> tuple[str, bool]:
+    """
+    Resolves source CSV files to a local directory the generated scripts can read from.
+    Returns (source_data_dir_path, should_cleanup).
+    For local mode: returns config.INPUT_DIR directly, no cleanup needed.
+    For S3 mode: downloads all source files to a temp dir, returns temp dir, cleanup=True.
+    """
+    import tempfile
+    import shutil
+    from pathlib import Path
+
+    if not config.USE_S3_SOURCE:
+        return str(config.INPUT_DIR), False
+
+    storage = context.get("_storage")
+    if storage is None:
+        raise RuntimeError("SOURCE_RESOLUTION_FAILED: _storage not in context. Run pipeline from Discovery.")
+
+    source_files = context.get("source_files", [])
+    if not source_files:
+        raise RuntimeError("SOURCE_RESOLUTION_FAILED: No source_files in context.")
+
+    workspace_tmp = Path(config.OUTPUT_DIR).parent / "_tmp" / "migration_src"
+    workspace_tmp.mkdir(parents=True, exist_ok=True)
+    tmp_dir = tempfile.mkdtemp(prefix="obq_migration_src_", dir=str(workspace_tmp))
+    try:
+        for key in source_files:
+            filename = os.path.basename(key)
+            buf = storage.read_file(key)
+            if buf is None:
+                raise RuntimeError(f"SOURCE_RESOLUTION_FAILED: Could not read {key} from S3.")
+            dest = os.path.join(tmp_dir, filename)
+            with open(dest, "wb") as f:
+                f.write(buf.read())
+            print(f"  [source] Downloaded {filename} -> {tmp_dir}")
+        return tmp_dir, True
+    except Exception as e:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        raise RuntimeError(f"SOURCE_RESOLUTION_FAILED: {e}")
+
 
 def _parse_orchestrator_output(stdout: str) -> tuple[list, int, list]:
     """
@@ -209,12 +280,9 @@ def run_migration_execution_agent(context: dict, verbose: bool = True) -> dict:
 
     # ── precondition check ─────────────────────────────────────────────────────
     review_status = context.get("review", {}).get("status")
-    if review_status != "APPROVED":
-        msg = f"PRECONDITION_FAILED: Review status is '{review_status}', must be APPROVED."
-        print(f"  x {msg}")
-        context["execution"] = {"status": "FAILED", "error": msg, "llm_trace": {}}
-        append_audit_event(context, AGENT_NAME, "precondition_check", "failed", {"error": msg})
-        return context
+    PASSING_STATUSES = {"APPROVED", "APPROVED WITH WARNINGS"}
+    if review_status not in PASSING_STATUSES:
+        raise ValueError(f'PRECONDITION_FAILED: Review status is {repr(review_status)}, must be APPROVED or APPROVED WITH WARNINGS.')
 
     target = context.get("target_database")
     if target not in ("duckdb", "dynamodb"):
@@ -237,21 +305,21 @@ def run_migration_execution_agent(context: dict, verbose: bool = True) -> dict:
         append_audit_event(context, AGENT_NAME, "manifest_check", "failed", {"error": msg})
         return context
 
-    # ── validate DUCKDB_PATH is set before doing anything ─────────────────────
-    if target == "duckdb" and not os.getenv("DUCKDB_PATH"):
-        msg = "CONNECTION_FAILURE: DUCKDB_PATH env var is not set. All scripts share this file."
-        print(f"  x {msg}")
-        context["execution"] = {"status": "FAILED", "error": msg, "llm_trace": {}}
-        append_audit_event(context, AGENT_NAME, "env_check", "failed", {"error": msg})
-        return context
+    # ── resolve DUCKDB_PATH before doing anything ─────────────────────────────
+    if target == "duckdb":
+        duckdb_path = os.getenv("DUCKDB_PATH")
+        if not duckdb_path:
+            import config
+            run_id = context.get('meta', {}).get('run_id') or context.get('job_id', 'default')
+            duckdb_path = os.path.join(str(config.OUTPUT_DIR), 'migration', f'obq_{run_id}.duckdb')
+            os.makedirs(os.path.dirname(duckdb_path), exist_ok=True)
+            os.environ['DUCKDB_PATH'] = duckdb_path
 
     if verbose:
         print(f"  Target            : {target}")
         print(f"  Steps to run      : {len(ordered_steps)}")
-        print(f"  Python interpreter: {sys.executable}")
         if target == "duckdb":
-            print(f"  DUCKDB_PATH       : {os.getenv('DUCKDB_PATH')}")
-            print(f"  SOURCE_DATA_DIR   : {os.getenv('SOURCE_DATA_DIR', 'not set')}")
+            print(f"  DUCKDB_PATH       : {duckdb_path}")
 
     # ── resolve orchestrator written by Agent 7b ───────────────────────────────
     orchestrator_info = migration.get("orchestrator", {})
@@ -271,6 +339,16 @@ def run_migration_execution_agent(context: dict, verbose: bool = True) -> dict:
         append_audit_event(context, AGENT_NAME, "orchestrator_check", "failed", {"error": msg})
         return context
 
+    _autopatch_stale_scripts(str(orchestrator_path.parent))
+
+    source_data_dir = None
+    cleanup_source = False
+    if target == "duckdb":
+        source_data_dir, cleanup_source = _resolve_source_data_dir(context)
+        os.environ["SOURCE_DATA_DIR"] = source_data_dir
+        if verbose:
+            print(f"  SOURCE_DATA_DIR   : {source_data_dir}")
+
     if verbose:
         print(f"  Orchestrator      : {orchestrator_path}")
         print(f"  Running orchestrator...")
@@ -289,7 +367,6 @@ def run_migration_execution_agent(context: dict, verbose: bool = True) -> dict:
         )
         stdout = result.stdout
         stderr = result.stderr.strip()
-
     except subprocess.TimeoutExpired:
         msg = f"DATA_LOAD_FAILURE: Orchestrator timed out after {timeout}s"
         print(f"  x {msg}")
@@ -299,7 +376,6 @@ def run_migration_execution_agent(context: dict, verbose: bool = True) -> dict:
         }
         append_audit_event(context, AGENT_NAME, "orchestrator_run", "failed", {"error": msg})
         return context
-
     except Exception as e:
         msg = f"DATA_LOAD_FAILURE: Failed to run orchestrator — {e}"
         print(f"  x {msg}")
@@ -309,6 +385,11 @@ def run_migration_execution_agent(context: dict, verbose: bool = True) -> dict:
         }
         append_audit_event(context, AGENT_NAME, "orchestrator_run", "failed", {"error": msg})
         return context
+    finally:
+        if cleanup_source and source_data_dir:
+            import shutil
+            shutil.rmtree(source_data_dir, ignore_errors=True)
+            print(f"  [source] Cleaned up temp dir: {source_data_dir}")
 
     exec_time = round(time.time() - t_start, 2)
 

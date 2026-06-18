@@ -614,6 +614,9 @@ async def dashboard_page(client: Client):
                         elif status == 'completed':
                             status_badge.set_text('COMPLETED')
                             status_badge.style('background-color: #16a34a;')
+                        elif status == 'skipped':
+                            status_badge.set_text('SKIPPED')
+                            status_badge.style('background-color: #ca8a04;')
                         elif status == 'failed':
                             status_badge.set_text('FAILED')
                             status_badge.style('background-color: #dc2626;')
@@ -636,11 +639,16 @@ async def dashboard_page(client: Client):
                             ui.run_javascript(f'const el = document.getElementById("c{log_console.id}"); if (el) el.scrollTop = el.scrollHeight;')
                         
                         # Stop polling if execution hits terminal state
-                        if status in ('completed', 'failed'):
+                        if status in ('completed', 'skipped', 'failed'):
                             polling_timer.deactivate()
                             display_step = "Migration Agent" if current_step == "MigrationAgent" else current_step
                             if status == 'completed':
                                 ui.notify('Completed successfully!', type='positive')
+                                refresh_stepper_ui()
+                                refresh_action_button()
+                                refresh_outputs()
+                            elif status == 'skipped':
+                                ui.notify('Migration review was not approved, so execution was skipped.', type='warning')
                                 refresh_stepper_ui()
                                 refresh_action_button()
                                 refresh_outputs()

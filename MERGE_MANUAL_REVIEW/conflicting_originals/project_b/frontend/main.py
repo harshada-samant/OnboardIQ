@@ -32,7 +32,7 @@ import backend.pipeline_service
 # Run NiceGUI server
 ui.run(
     title='OnboardIQ - Data Onboarding',
-    port=8080,
+    port=8081,
     show=False,
     reload=False,
     storage_secret='onboardiq_super_secret_key',

@@ -105,7 +105,8 @@ def run_pipeline(input_dir: str = None, verbose: bool = True, chat: bool = False
         save_snapshot(ctx)
 
     # Agent 10 — Execution Agent (runs only if approved)
-    if ctx.get("review", {}).get("status") == "APPROVED":
+    PASSING_STATUSES = {"APPROVED", "APPROVED WITH WARNINGS"}
+    if ctx.get("review", {}).get("status") in PASSING_STATUSES:
         run_migration_execution_agent(ctx, verbose=verbose)
         save_snapshot(ctx)
 
@@ -117,7 +118,7 @@ def run_pipeline(input_dir: str = None, verbose: bool = True, chat: bool = False
         run_migration_approval_agent(ctx, verbose=verbose)
         save_snapshot(ctx)
     else:
-        print("  ! Skipping Execution, Validation, and Approval because Migration Review was not APPROVED.")
+        print("  ! Skipping Execution, Validation, and Approval because Migration Review was not approved.")
 
     # Agent 13 — Conversational Assistant (optional)
     if chat:

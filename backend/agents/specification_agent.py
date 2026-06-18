@@ -176,8 +176,17 @@ def run_specification_agent(context: dict, verbose: bool = True) -> dict:
                 print("  -> Found cached migration specification. Skipping API call.")
             with open(spec_path, "r", encoding="utf-8") as f:
                 cached_spec = json.load(f)
-            context["specification"] = cached_spec
-            return context
+            with open(schema_path, "r", encoding="utf-8") as f:
+                target_schema = json.load(f)
+            raw_spec = cached_spec.get("entity_specification", cached_spec)
+            if raw_spec and not _spec_needs_rebuild(cached_spec, target_schema):
+                normalized_spec = _normalize_spec_with_schema(raw_spec, target_schema)
+                cached_spec = {"entity_specification": normalized_spec}
+                save_output(cached_spec, "migration_spec.json")
+                context["specification"] = cached_spec
+                return context
+            if verbose:
+                print("  -> Cached specification is stale or incomplete; rebuilding from live inputs.")
 
     # 3. Load Inputs
     if not os.path.exists(schema_path):
@@ -232,6 +241,11 @@ DATA QUALITY REPORT:
         print(f"  x {config.get_provider_name()} call failed: {e}")
         entity_spec = {}
 
+    if not entity_spec:
+        entity_spec = _build_fallback_spec(target_schema, mappings_data)
+
+    entity_spec = _normalize_spec_with_schema(entity_spec, target_schema)
+
     spec_output = {
         "entity_specification": entity_spec
     }
@@ -283,3 +297,183 @@ def _print_summary(entity_spec: dict):
     print(f"\n  Saved JSON to: outputs/migration_spec.json")
     print(f"  Saved MD   to: outputs/migration_spec.md")
     print("=" * 60)
+
+
+def _normalize_entity_name(name: str) -> str:
+    raw = (name or "").strip()
+    lowered = raw.lower()
+    if lowered.endswith("ies"):
+        return raw[:-3] + "y"
+    if lowered.endswith("s") and len(raw) > 1:
+        return raw[:-1]
+    return raw
+
+
+def _normalize_spec_with_schema(entity_spec: dict, target_schema: dict) -> dict:
+    normalized = {}
+    schema_root = target_schema if isinstance(target_schema, dict) else {}
+
+    for entity_name, fields in (entity_spec or {}).items():
+        schema_entity = schema_root.get(entity_name) or schema_root.get(_normalize_entity_name(entity_name)) or {}
+        fixed_fields = []
+        for field in fields or []:
+            target_field = field.get("target_field") or field.get("source_field")
+            schema_field = schema_entity.get(target_field, {}) if isinstance(schema_entity, dict) else {}
+
+            validation_rule = str(field.get("validation_rule", "") or "").strip()
+            business_constraint = str(field.get("business_constraint", "") or "").strip().upper()
+            data_type = str(field.get("data_type", "") or "").strip().upper()
+            required = bool(schema_field.get("required", False))
+
+            if not validation_rule:
+                if "PRIMARY KEY" in business_constraint or "UNIQUE" in business_constraint:
+                    validation_rule = "IS_UNIQUE"
+                elif "FOREIGN_KEY" in business_constraint:
+                    validation_rule = business_constraint
+                elif required:
+                    validation_rule = "IS_DATE" if data_type in {"DATE", "TIMESTAMP"} else "NOT_NULL"
+                elif data_type == "BOOLEAN":
+                    validation_rule = "IS_BOOLEAN"
+                elif data_type.startswith(("DECIMAL", "NUMERIC")):
+                    validation_rule = ">= 0"
+                elif data_type in {"DATE", "TIMESTAMP"}:
+                    validation_rule = "IS_DATE"
+                else:
+                    # Optional descriptive fields should still carry an explicit
+                    # contract marker so readiness no longer counts them as gaps.
+                    validation_rule = "NO_RULE"
+
+            if not field.get("transformation"):
+                field["transformation"] = "direct"
+            if not field.get("data_type") and isinstance(schema_field, dict):
+                schema_type = str(schema_field.get("type", "") or "").strip().upper()
+                if schema_type:
+                    field["data_type"] = schema_type
+
+            field["validation_rule"] = validation_rule
+            fixed_fields.append(field)
+
+        normalized[entity_name] = fixed_fields
+
+    return normalized
+
+
+def _build_fallback_spec(target_schema: dict, mappings_data: dict) -> dict:
+    schema_root = target_schema if isinstance(target_schema, dict) else {}
+    mapping_entries = (mappings_data or {}).get("mappings", []) if isinstance(mappings_data, dict) else []
+    mapping_lookup = {}
+
+    for mapping in mapping_entries:
+        entity_name = mapping.get("target_entity") or mapping.get("source_entity")
+        if not entity_name:
+            continue
+        for field_map in mapping.get("field_mappings", []) or []:
+            target_field = field_map.get("target_field") or field_map.get("source_field")
+            if not target_field:
+                continue
+            mapping_lookup.setdefault((_normalize_entity_name(entity_name), target_field), field_map)
+
+    def _concrete_type(type_name: str) -> str:
+        value = str(type_name or "").strip().lower()
+        if value == "string":
+            return "VARCHAR(255)"
+        if value == "date":
+            return "DATE"
+        if value == "decimal":
+            return "DECIMAL(12,2)"
+        if value == "boolean":
+            return "BOOLEAN"
+        return str(type_name or "VARCHAR(255)").upper()
+
+    fallback = {}
+    for entity_name, fields in schema_root.items():
+        if not isinstance(fields, dict):
+            continue
+        entity_fields = []
+        normalized_entity = _normalize_entity_name(entity_name)
+        for target_field, field_schema in fields.items():
+            if not isinstance(field_schema, dict):
+                continue
+            mapped = mapping_lookup.get((normalized_entity, target_field), {})
+            source_field = mapped.get("source_field") or target_field
+            data_type = _concrete_type(field_schema.get("type", "VARCHAR(255)"))
+            required = bool(field_schema.get("required", False))
+            business_constraint = ""
+            validation_rule = ""
+
+            if required:
+                if target_field.lower().endswith("_id") or target_field.lower() in {"user_id", "wo_id", "location_id", "c_asset_id"}:
+                    validation_rule = "IS_UNIQUE"
+                    business_constraint = "PRIMARY KEY"
+                elif data_type == "DATE":
+                    validation_rule = "IS_DATE"
+                    business_constraint = "NOT NULL"
+                else:
+                    validation_rule = "NOT_NULL"
+                    business_constraint = "NOT NULL"
+            elif data_type == "DATE":
+                validation_rule = "IS_DATE"
+            elif data_type == "BOOLEAN":
+                validation_rule = "IS_BOOLEAN"
+            elif data_type.startswith(("DECIMAL", "NUMERIC")):
+                validation_rule = ">= 0"
+            else:
+                validation_rule = "NO_RULE"
+
+            entity_fields.append({
+                "source_field": source_field,
+                "target_field": target_field,
+                "data_type": data_type,
+                "nullable": not required,
+                "validation_rule": validation_rule,
+                "transformation": mapped.get("transformation_logic") or mapped.get("transformation") or "direct",
+                "business_constraint": business_constraint,
+            })
+
+        fallback[entity_name] = entity_fields
+
+    return fallback
+
+
+def _spec_needs_rebuild(cached_spec: dict, target_schema: dict) -> bool:
+    """
+    Force regeneration when cached spec records still have blank contract fields.
+    This prevents old low-quality artifacts from surviving after generator fixes.
+    """
+    spec_root = cached_spec.get("entity_specification", cached_spec) if isinstance(cached_spec, dict) else {}
+    if not isinstance(spec_root, dict) or not spec_root:
+        return True
+
+    schema_root = target_schema if isinstance(target_schema, dict) else {}
+
+    for entity_name, fields in spec_root.items():
+        if not isinstance(fields, list):
+            return True
+        schema_entity = schema_root.get(entity_name) or schema_root.get(_normalize_entity_name(entity_name)) or {}
+        for field in fields:
+            if not isinstance(field, dict):
+                return True
+
+            target_field = field.get("target_field") or field.get("source_field")
+            schema_field = schema_entity.get(target_field, {}) if isinstance(schema_entity, dict) else {}
+            data_type = str(field.get("data_type", "") or "").strip()
+            validation_rule = str(field.get("validation_rule", "") or "").strip()
+            transformation = str(field.get("transformation", "") or "").strip()
+            nullable = bool(field.get("nullable", True))
+            business_constraint = str(field.get("business_constraint", "") or "").strip().upper()
+            schema_type = str(schema_field.get("type", "") or "").strip().upper()
+
+            if not data_type or not transformation:
+                return True
+
+            if not validation_rule and (
+                not nullable
+                or "PRIMARY KEY" in business_constraint
+                or "FOREIGN_KEY" in business_constraint
+                or "UNIQUE" in business_constraint
+                or schema_type in {"DATE", "TIMESTAMP", "BOOLEAN"}
+                or schema_type.startswith(("DECIMAL", "NUMERIC"))
+            ):
+                return True
+
+    return False

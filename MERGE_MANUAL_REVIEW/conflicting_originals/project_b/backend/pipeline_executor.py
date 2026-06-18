@@ -263,7 +263,8 @@ def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None
                 save_snapshot(ctx)
 
             # Migration Execution (only if approved)
-            if ctx.get("review", {}).get("status") == "APPROVED":
+            PASSING_STATUSES = {"APPROVED", "APPROVED WITH WARNINGS"}
+            if ctx.get("review", {}).get("status") in PASSING_STATUSES:
                 transition_step(execution_id, "MigrationExecution", 99, "Starting Migration Execution Agent...")
                 run_migration_execution_agent(ctx, verbose=True)
                 save_snapshot(ctx)
@@ -343,7 +344,8 @@ def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None
                     save_snapshot(ctx)
 
                 # 10. Execution Agent (runs only if approved)
-                if ctx.get("review", {}).get("status") == "APPROVED":
+                PASSING_STATUSES = {"APPROVED", "APPROVED WITH WARNINGS"}
+                if ctx.get("review", {}).get("status") in PASSING_STATUSES:
                     transition_step(execution_id, "MigrationAgent", 70, "Starting Migration Execution Agent...")
                     run_migration_execution_agent(ctx, verbose=True)
                     save_snapshot(ctx)
@@ -362,7 +364,7 @@ def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None
                     run_migration_approval_agent(ctx, verbose=True)
                     save_snapshot(ctx)
                 else:
-                    msg = "Skipping Execution, Validation, and Approval because Migration Review was not APPROVED."
+                    msg = "Skipping Execution, Validation, and Approval because Migration Review was not approved."
                     print(f"  ! {msg}")
                     raise ValueError(msg)
                 

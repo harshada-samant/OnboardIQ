@@ -24,12 +24,16 @@ load_and_validate_env()
 from agents.migration_reviewer_agent import run_migration_reviewer_agent
 from agents.migration_repair_agent import run_migration_repair_agent
 from agents.migration_execution_agent import run_migration_execution_agent                        
+from agents.migration_validation_agent import run_migration_validation_agent
                                                                                                             
 # Simulate the context you have (replace with your actual values)                                           
 ctx = json.load(open("D:\\onboardingIQ\\Onboardiq\\outputs\\context_snapshot.json"))  # Load the context snapshot from a file                                                                                       
+result = ctx
                                                                                                             
 # Run the agent    
 # 
+PASSING_STATUSES = {"APPROVED", "APPROVED WITH WARNINGS"}
+
 # 7. Migration Generator
 # print( "MigrationAgent", "Starting Migration Code Generator...")
 # run_migration_generator_agent(ctx, verbose=True)
@@ -61,7 +65,7 @@ ctx = json.load(open("D:\\onboardingIQ\\Onboardiq\\outputs\\context_snapshot.jso
 #     run_migration_reviewer_agent(ctx, verbose=True)
 #     # save_snapshot(ctx)
 # 10. Execution Agent (runs only if approved)
-if ctx.get("review", {}).get("status") == "APPROVED":
+if ctx.get("review", {}).get("status") in PASSING_STATUSES:
     print("MigrationAgent", "Starting Migration Execution Agent...")
     run_migration_execution_agent(ctx, verbose=True)
     save_snapshot(ctx)
@@ -76,13 +80,10 @@ if ctx.get("review", {}).get("status") == "APPROVED":
         raise ValueError(ctx.get("validation", {}).get("error", "Migration Validation failed."))
     
 else:
-    msg = "Skipping Execution, Validation, and Approval because Migration Review was not APPROVED."
+    msg = "Skipping Execution, Validation, and Approval because Migration Review was not approved."
     print(f"  ! {msg}")
     raise ValueError(msg)
                                                                                                       
-# result = run_migration_generator_agent(context, verbose=True)    
-                                           
-                                                                                                            
 # Print a brief summary                                                                                     
 print("Agent finished. Status:", result.get("migration", {}).get("status"))                                 
 

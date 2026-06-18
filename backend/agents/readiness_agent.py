@@ -111,21 +111,74 @@ def _call_bedrock(prompt, system, label="", max_tokens=2048, temperature=0.0):
 
 def _parse_json(raw):
     cleaned = (raw or "").strip()
+    if not cleaned:
+        raise ValueError("Empty JSON payload")
+
     if cleaned.startswith("```"):
-        parts   = cleaned.split("```")
-        cleaned = parts[1] if len(parts) >= 2 else cleaned
+        parts = cleaned.split("```")
+        if len(parts) >= 2:
+            cleaned = parts[1]
         if cleaned.lstrip().startswith("json"):
             cleaned = cleaned.lstrip()[4:]
     cleaned = cleaned.strip()
+
+    def _balanced_fragment(text: str) -> str:
+        start = None
+        opener = None
+        stack = []
+        in_string = False
+        escaped = False
+
+        for i, ch in enumerate(text):
+            if start is None:
+                if ch in "{[":
+                    start = i
+                    opener = ch
+                    stack = ["}" if ch == "{" else "]"]
+                continue
+
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif ch == "\\":
+                    escaped = True
+                elif ch == '"':
+                    in_string = False
+                continue
+
+            if ch == '"':
+                in_string = True
+                continue
+            if ch in "{[":
+                stack.append("}" if ch == "{" else "]")
+                continue
+            if ch in "}]":
+                if stack and ch == stack[-1]:
+                    stack.pop()
+                    if not stack:
+                        return text[start : i + 1]
+                else:
+                    # Mismatched closing bracket; continue scanning in case
+                    # the model emitted a valid object later in the payload.
+                    continue
+
+        if start is not None:
+            return text[start:]
+        raise ValueError("No JSON object found")
+
+    candidates = [cleaned]
     try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        start = min((i for i in [cleaned.find("{"), cleaned.find("[")] if i != -1), default=-1)
-        if start == -1:
-            raise
-        close = "}" if cleaned[start] == "{" else "]"
-        end   = cleaned.rfind(close)
-        return json.loads(cleaned[start:end + 1])
+        candidates.append(_balanced_fragment(cleaned))
+    except Exception:
+        pass
+
+    for candidate in candidates:
+        try:
+            return json.loads(candidate)
+        except Exception:
+            continue
+
+    raise ValueError("Could not parse JSON from model response")
 
 
 # ── Risk helper ────────────────────────────────────────────────────────────────
@@ -138,9 +191,98 @@ def _severity_order(item):
     return {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}.get(item.get("severity", "LOW"), 4)
 
 
+def _entity_name_candidates(name: str) -> list[str]:
+    raw = (name or "").strip().lower()
+    if not raw:
+        return []
+    candidates = [raw]
+    if raw.endswith("ies"):
+        candidates.append(raw[:-3] + "y")
+    if raw.endswith("s") and len(raw) > 1:
+        candidates.append(raw[:-1])
+    return list(dict.fromkeys(candidates))
+
+
+def _build_spec_field_lookup(specification):
+    spec_root = specification.get("entity_specification", specification) if isinstance(specification, dict) else {}
+    lookup = {}
+    if not isinstance(spec_root, dict):
+        return lookup
+    for entity_name, fields in spec_root.items():
+        if not isinstance(fields, list):
+            continue
+        for field in fields:
+            source_field = (field.get("source_field") or "").strip().lower()
+            target_field = (field.get("target_field") or "").strip().lower()
+            if not source_field:
+                continue
+            for entity_key in _entity_name_candidates(entity_name):
+                lookup[(entity_key, source_field)] = {
+                    "target_field": target_field,
+                    "nullable": bool(field.get("nullable", True)),
+                    "business_constraint": str(field.get("business_constraint", "") or ""),
+                }
+    return lookup
+
+
+def _lookup_field_spec(spec_lookup: dict, entity_name: str, field_name: str):
+    for entity_key in _entity_name_candidates(entity_name):
+        spec = spec_lookup.get((entity_key, (field_name or "").strip().lower()))
+        if spec:
+            return spec
+    return None
+
+
+def _build_optional_fk_lookup(specification=None, mappings=None):
+    optional = set()
+    spec_lookup = _build_spec_field_lookup(specification)
+    mapping_entries = (mappings or {}).get("mappings", []) if isinstance(mappings, dict) else (mappings or [])
+
+    for block in mapping_entries:
+        source_entity = block.get("source_entity", "")
+        for fm in block.get("field_mappings", []) or []:
+            src_field = (fm.get("source_field") or "").strip().lower()
+            tgt_field = (fm.get("target_field") or "").strip().lower()
+            if not src_field:
+                continue
+            spec = _lookup_field_spec(spec_lookup, block.get("target_entity", ""), tgt_field or src_field)
+            if spec and spec.get("nullable", True):
+                optional.add((source_entity.strip().lower(), src_field))
+    return optional
+
+
+def _is_optional_fk_candidate(entity_name: str, field_name: str, specification=None, mappings=None) -> bool:
+    """
+    Treat a foreign-key candidate as optional when the generated contract
+    explicitly maps it to a nullable target field, even if the discovery graph
+    did not resolve a parent relationship.
+    """
+    field_key = (entity_name or "").strip().lower(), (field_name or "").strip().lower()
+    optional_lookup = _build_optional_fk_lookup(specification, mappings)
+    if field_key in optional_lookup:
+        return True
+
+    mapping_entries = (mappings or {}).get("mappings", []) if isinstance(mappings, dict) else (mappings or [])
+    for block in mapping_entries:
+        if (block.get("source_entity") or "").strip().lower() != field_key[0]:
+            continue
+        for fm in block.get("field_mappings", []) or []:
+            if (fm.get("source_field") or "").strip().lower() != field_key[1]:
+                continue
+            spec_lookup = _build_spec_field_lookup(specification)
+            spec = _lookup_field_spec(
+                spec_lookup,
+                block.get("target_entity", ""),
+                (fm.get("target_field") or "").strip().lower() or field_key[1],
+            )
+            if spec and spec.get("nullable", True):
+                return True
+    return False
+
+
 # ── LAYER 1 sub-scorers ────────────────────────────────────────────────────────
 
-def _score_data_quality(quality_report):
+def _score_data_quality(quality_report, specification=None):
     if not quality_report:
         # CRITICAL because the profiling report is missing entirely, so there is no basis to assess
         # data quality and the readiness score would be unreliable.
@@ -158,17 +300,62 @@ def _score_data_quality(quality_report):
 
     score      = 100.0
     risk_items = []
+    spec_lookup = _build_spec_field_lookup(specification)
 
     for entity_name, eq in entity_quality.items():
-        checks  = eq.get("checks", [])
-        fail_ct = sum(1 for c in checks if c.get("status") == "FAIL")
-        warn_ct = sum(1 for c in checks if c.get("status") == "WARNING")
         dups    = int(eq.get("duplicate_records_count") or 0)
         orphans = int(eq.get("orphan_records_count") or 0)
         compl   = float(eq.get("completeness_score") or 100.0)
+        checks  = eq.get("checks", [])
 
-        score -= min(fail_ct * 5, 20)
-        score -= min(warn_ct * 2, 10)
+        for chk in checks:
+            check_type = chk.get("check_type")
+            field_name = chk.get("field")
+            status = chk.get("status")
+            field_spec = _lookup_field_spec(spec_lookup, entity_name, field_name)
+            is_optional = bool(field_spec and field_spec.get("nullable", True))
+
+            if check_type == "NULL_CHECK":
+                if status == "FAIL":
+                    if is_optional:
+                        continue
+                    score -= 5
+                    risk_items.append(_risk("MEDIUM", entity_name,
+                        chk.get("message", "Check failed"),
+                        f"Required field '{field_name}' is missing values.",
+                        "Review source data for this field and apply appropriate cleansing."))
+                elif status == "WARNING":
+                    if not is_optional:
+                        score -= 1
+                        risk_items.append(_risk("LOW", entity_name,
+                            chk.get("message", "Check warning"),
+                            f"Field '{field_name}' has some nulls but remains optional.",
+                            "Confirm the null pattern is acceptable for the target contract."))
+                continue
+
+            if check_type == "REFERENTIAL_INTEGRITY":
+                if status == "FAIL":
+                    if is_optional:
+                        continue
+                    orphan_count = int(eq.get("orphan_records_count") or 0)
+                    if orphan_count <= 1:
+                        score -= 0.5
+                    elif orphan_count <= 5:
+                        score -= 1
+                    else:
+                        score -= 2
+                    risk_items.append(_risk("MEDIUM", entity_name,
+                        chk.get("message", "Referential integrity failed"),
+                        f"Required reference field '{field_name}' has orphaned values.",
+                        "Resolve missing parent records or nullify FK before loading."))
+                continue
+
+            if check_type == "PRIMARY_KEY_DUPLICATES" and status == "FAIL":
+                score -= 5
+                risk_items.append(_risk("HIGH", entity_name,
+                    chk.get("message", "Duplicate key check failed"),
+                    f"Primary key '{field_name}' is not unique.",
+                    "Deduplicate records or assign surrogate keys before migration."))
 
         if compl < 90:
             # HIGH because completeness below 90% means the entity is missing enough source data
@@ -208,15 +395,6 @@ def _score_data_quality(quality_report):
                 f"{orphans} orphan record(s) (broken FK references)",
                 f"Records in {entity_name} reference parent IDs that do not exist.",
                 "Resolve missing parent records or nullify FK before loading."))
-
-        for chk in checks:
-            if chk.get("status") == "FAIL":
-                # MEDIUM because an individual failed check is actionable and important, but it is
-                # already captured at the field level and does not necessarily imply the entity is blocked.
-                risk_items.append(_risk("MEDIUM", entity_name,
-                    chk.get("message", "Check failed"),
-                    f"Check type {chk.get('check_type')} failed on field '{chk.get('field')}'.",
-                    "Review source data for this field and apply appropriate cleansing."))
 
     return round(max(0.0, min(100.0, score)), 1), risk_items
 
@@ -318,8 +496,28 @@ def _score_spec_completeness(specification):
             continue
         for f in fields:
             total_fields += 1
-            missing = [attr for attr in ("data_type", "validation_rule", "transformation")
-                       if not f.get(attr)]
+            data_type = str(f.get("data_type", "") or "").strip()
+            validation_rule = str(f.get("validation_rule", "") or "").strip()
+            transformation = str(f.get("transformation", "") or "").strip()
+            business_constraint = str(f.get("business_constraint", "") or "").strip().upper()
+            nullable = bool(f.get("nullable", True))
+
+            needs_validation_rule = (
+                not nullable
+                or "PRIMARY KEY" in business_constraint
+                or "FOREIGN_KEY" in business_constraint
+                or "UNIQUE" in business_constraint
+                or data_type.upper() in {"DATE", "TIMESTAMP", "BOOLEAN"}
+                or data_type.upper().startswith(("DECIMAL", "NUMERIC"))
+            )
+
+            missing = []
+            if not data_type:
+                missing.append("data_type")
+            if needs_validation_rule and not validation_rule:
+                missing.append("validation_rule")
+            if not transformation:
+                missing.append("transformation")
             if not missing:
                 complete_fields += 1
             else:
@@ -340,7 +538,7 @@ def _score_spec_completeness(specification):
     return round((complete_fields / total_fields) * 100, 1), risk_items
 
 
-def _score_relationship_clarity(entity_catalog):
+def _score_relationship_clarity(entity_catalog, specification=None, mappings=None):
     if not entity_catalog:
         # HIGH because discovery output is missing, which prevents relationship review, but the source
         # catalog may still be recoverable without treating the whole discovery stage as failed.
@@ -357,10 +555,11 @@ def _score_relationship_clarity(entity_catalog):
 
     score      = 100.0
     risk_items = []
+    optional_fk_lookup = _build_optional_fk_lookup(specification, mappings)
 
     failed = [e for e in entities if e.get("status") == "FAILED"]
     if failed:
-        score -= len(failed) * 15
+        score -= len(failed) * 5
         # HIGH because failed discovery entities are serious and need intervention, but the catalog still
         # exists and the rest of the plan may continue once those failures are resolved.
         risk_items.append(_risk("HIGH", "Discovery",
@@ -373,9 +572,10 @@ def _score_relationship_clarity(entity_catalog):
         relationships     = entity.get("relationships", [])
         resolved_fields   = {r["from_field"] for r in relationships}
         unresolved        = [fk["field"] for fk in fk_candidates
-                             if fk.get("field") not in resolved_fields]
+                             if fk.get("field") not in resolved_fields
+                             and not _is_optional_fk_candidate(entity.get("entity_name", ""), fk.get("field", ""), specification, mappings)]
         if unresolved:
-            score -= len(unresolved) * 5
+            score -= len(unresolved) * 1
             # MEDIUM because unresolved FKs indicate a relationship gap that needs attention, but the issue
             # is often solvable by adding the missing parent or confirming the relationship is external.
             risk_items.append(_risk("MEDIUM", entity.get("entity_name", "?"),
@@ -384,7 +584,7 @@ def _score_relationship_clarity(entity_catalog):
                 "Upload the referenced parent table or confirm the FK is to an external system."))
 
     for dup in entity_catalog.get("potential_duplicate_entities", []):
-        score -= 10
+        score -= 5
         # MEDIUM because duplicate-entity candidates are a structural warning that deserves review, but it
         # is still a candidate pair rather than a confirmed migration blocker.
         risk_items.append(_risk("MEDIUM", f"{dup.get('entity_a')} / {dup.get('entity_b')}",
@@ -433,7 +633,13 @@ def _enrich_risks_with_llm(risk_items, verbose):
     prompt = f"Enrich these migration risk items with root_cause, impact, and action.\n\n{json.dumps(risk_items, indent=2)}"
     try:
         raw      = _call_bedrock(prompt, READINESS_SYSTEM, label="ReadinessAgent")
-        result   = _parse_json(raw)
+        try:
+            result = _parse_json(raw)
+        except Exception as parse_error:
+            if verbose:
+                print(f"  ! Risk enrichment JSON parse failed: {parse_error}. Using raw risk items.")
+            return risk_items
+
         enriched = result.get("enriched_risks", [])
         if len(enriched) != len(risk_items):
             if verbose:
@@ -542,10 +748,10 @@ def run_readiness_agent(context, verbose=True):
     if verbose:
         print("\n[Layer 1] Computing deterministic sub-scores...")
 
-    q_score,  q_risks  = _score_data_quality(quality_report)
+    q_score,  q_risks  = _score_data_quality(quality_report, specification)
     m_score,  m_risks  = _score_mapping_coverage(mapping_doc)
     sp_score, sp_risks = _score_spec_completeness(specification)
-    r_score,  r_risks  = _score_relationship_clarity(entity_catalog)
+    r_score,  r_risks  = _score_relationship_clarity(entity_catalog, specification, mapping_doc)
 
     sub_scores = {
         "data_quality":  q_score,

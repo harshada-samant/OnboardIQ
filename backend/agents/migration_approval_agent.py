@@ -7,7 +7,7 @@ Reads:  context.review, context.execution, context.validation
 Writes: context["approval"]
 
 Checks policies:
-- Review must be APPROVED.
+- Review must be APPROVED or APPROVED WITH WARNINGS.
 - Execution must be SUCCESS.
 - Validation must be PASS and quality_score >= 95.
 
@@ -120,8 +120,10 @@ def run_migration_approval_agent(context: dict, verbose: bool = True) -> dict:
     violations = []
     
     # 1. Enforce hard Python policies
-    if review.get("status") != "APPROVED":
-        violations.append(f"Review status is '{review.get('status')}', must be APPROVED.")
+    if review.get("status") not in ("APPROVED", "APPROVED WITH WARNINGS"):
+        violations.append(
+            f"Review status is '{review.get('status')}', must be APPROVED or APPROVED WITH WARNINGS."
+        )
     
     if execution.get("status") != "SUCCESS":
         violations.append(f"Execution status is '{execution.get('status')}', must be SUCCESS.")

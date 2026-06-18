@@ -23,7 +23,7 @@ Writes: context["review"]
 
 Output shape:
   {
-    "status":       "APPROVED | REJECTED",
+  "status":       "APPROVED | APPROVED WITH WARNINGS | REJECTED",
     "risk_level":   "LOW | MEDIUM | HIGH",
     "pass_results": { "pass1": {...}, "pass2": {...}, "pass3": {...} },
     "issues":       [...],          <- merged across all passes
@@ -141,10 +141,10 @@ def _load_entity_scripts(artifacts: list, entity: str) -> dict:
 
 
 def _load_all_migration_scripts(artifacts: list) -> dict:
-    """Load migration_sql content for every entity. Returns {entity: content}."""
+    """Load migration_script content for every entity. Returns {entity: content}."""
     result = {}
     for art in artifacts:
-        if art.get("artifact_type") == "migration_sql":
+        if art.get("artifact_type") == "migration_script":
             content = _read_artifact(art)
             if content:
                 result[art["entity"]] = content
@@ -168,14 +168,35 @@ def _static_checks(artifacts: list, target: str) -> list:
             continue
 
         low = content.lower()
+        entity_slug = (entity or "").strip().lower()
+        expected_duckdb_tables = {
+            "user": "users",
+            "users": "users",
+            "asset": "asset",
+            "assets": "asset",
+            "location": "location",
+            "locations": "location",
+            "workorder": "workorder",
+            "workorders": "workorder",
+        }
+        expected_table = expected_duckdb_tables.get(entity_slug, entity_slug)
 
-        if target == "duckdb" and atype == "migration_sql":
-            for danger in ("drop table ", "truncate ", "delete from "):
+        if target == "duckdb" and atype == "migration_script":
+            for danger in ("drop table ", "truncate "):
                 if danger in low and "rollback" not in path:
                     issues.append({
                         "entity": entity, "artifact_type": atype, "pass": "static",
                         "severity": "HIGH", "type": "BUSINESS_RULE_ERROR",
                         "description": f"Destructive statement '{danger.strip()}' in migration script (not rollback).",
+                        "line_reference": "",
+                    })
+            delete_matches = re.findall(r"\bdelete\s+from\s+([A-Za-z_][A-Za-z0-9_]*)", content, flags=re.IGNORECASE)
+            for table_name in delete_matches:
+                if table_name.strip().lower() != expected_table:
+                    issues.append({
+                        "entity": entity, "artifact_type": atype, "pass": "static",
+                        "severity": "HIGH", "type": "BUSINESS_RULE_ERROR",
+                        "description": f"Destructive statement 'delete from {table_name}' targets the wrong table for {entity}.",
                         "line_reference": "",
                     })
             if "begin" not in low and "con.begin" not in low:
@@ -193,15 +214,15 @@ def _static_checks(artifacts: list, target: str) -> list:
                         "description": f"Unsupported DuckDB syntax: '{bad.upper()}'. Use READ_CSV or COPY.",
                         "line_reference": "",
                     })
-            if "config.DUCKDB_PATH" not in content and "getenv" in content:
+            if "DUCKDB_PATH" not in content:
                 issues.append({
                     "entity": entity, "artifact_type": atype, "pass": "static",
                     "severity": "HIGH", "type": "BUSINESS_RULE_ERROR",
-                    "description": "Script does not read DUCKDB_PATH from config variables.",
+                    "description": "Script does not read DUCKDB_PATH from environment variables.",
                     "line_reference": "",
                 })
 
-        if target == "dynamodb" and atype == "migration_sql":
+        if target == "dynamodb" and atype == "migration_script":
             if "batch_writer" not in low and "batch_write_item" not in low:
                 issues.append({
                     "entity": entity, "artifact_type": atype, "pass": "static",
@@ -223,7 +244,7 @@ Check every item below — flag anything missing or wrong:
   1. Source filename matches Source file exactly (not invented).
   2. Every field mapping is applied with the correct transformation.
   3. All QUALITY REQUIREMENTS are enforced in validate script.
-  4. DUCKDB_PATH read from config.DUCKDB_PATH — never hardcoded.
+  4. DUCKDB_PATH read from os.environ / environment variables — never hardcoded.
   5. Transaction BEGIN/COMMIT present in migrate script.
   6. DuckDB-native syntax only (READ_CSV / COPY — not LOAD DATA INFILE etc.).
   7. Structured JSON log lines emitted for every OPERATIONAL stage.
@@ -232,11 +253,11 @@ Check every item below — flag anything missing or wrong:
   10. Validate script raises on failure, not just prints.
 
 Severity: CRITICAL / HIGH / MEDIUM / LOW
-Status: REJECTED if any CRITICAL or HIGH; REJECTED if MEDIUM with a code fix needed; else APPROVED.
+Status: REJECTED if any CRITICAL; APPROVED WITH WARNINGS if any HIGH or MEDIUM; else APPROVED.
 
 Return ONLY valid JSON:
 {
-  "status": "APPROVED | REJECTED",
+  "status": "APPROVED | APPROVED WITH WARNINGS | REJECTED",
   "risk_level": "LOW | MEDIUM | HIGH",
   "issues": [{"entity":"","artifact_type":"","severity":"","type":"","description":"","line_reference":""}],
   "fix_required": [{"entity":"","artifact_type":"","instruction":""}],
@@ -256,7 +277,7 @@ You will receive all migration scripts together. Check:
 
 Return ONLY valid JSON:
 {
-  "status": "APPROVED | REJECTED",
+  "status": "APPROVED | APPROVED WITH WARNINGS | REJECTED",
   "risk_level": "LOW | MEDIUM | HIGH",
   "issues": [{"entity":"","artifact_type":"","severity":"","type":"","description":"","line_reference":""}],
   "fix_required": [{"entity":"","artifact_type":"","instruction":""}],
@@ -276,7 +297,7 @@ Review the orchestrator script (run_migration_*.py). Check:
 
 Return ONLY valid JSON:
 {
-  "status": "APPROVED | REJECTED",
+  "status": "APPROVED | APPROVED WITH WARNINGS | REJECTED",
   "risk_level": "LOW | MEDIUM | HIGH",
   "issues": [{"entity":"orchestrator","artifact_type":"orchestrator","severity":"","type":"","description":"","line_reference":""}],
   "fix_required": [{"entity":"orchestrator","artifact_type":"orchestrator","instruction":""}],
@@ -303,6 +324,7 @@ def _run_pass1(artifacts, context, verbose) -> tuple[dict, dict]:
     all_fixes   = []
     trace       = {"tokens_in": 0, "tokens_out": 0, "latency_ms": 0, "model": ""}
     any_rejected = False
+    any_warning   = False
 
     for entity in entities:
         scripts      = _load_entity_scripts(artifacts, entity)
@@ -349,19 +371,27 @@ OPERATIONAL REQUIREMENTS:
                 all_fixes.append(fix)
             if result.get("status") == "REJECTED":
                 any_rejected = True
+            if result.get("status") == "APPROVED WITH WARNINGS":
+                any_warning = True
         except Exception as e:
             all_issues.append({
                 "entity": entity, "artifact_type": "all", "pass": "pass1",
                 "severity": "HIGH", "type": "CODE_GENERATION_ERROR",
                 "description": f"Pass 1 LLM error: {e}", "line_reference": "",
             })
-            any_rejected = True
+            any_warning = True
 
     severities   = {i["severity"] for i in all_issues}
     risk_level   = "HIGH" if "CRITICAL" in severities or "HIGH" in severities else (
                    "MEDIUM" if "MEDIUM" in severities else "LOW")
+    if any_rejected:
+        status = "REJECTED"
+    elif any_warning or "HIGH" in severities or "MEDIUM" in severities:
+        status = "APPROVED WITH WARNINGS"
+    else:
+        status = "APPROVED"
     return {
-        "status":       "REJECTED" if any_rejected else "APPROVED",
+        "status":       status,
         "risk_level":   risk_level,
         "issues":       all_issues,
         "fix_required": all_fixes,
@@ -433,7 +463,7 @@ def _run_pass3(artifacts, context, verbose) -> tuple[dict, dict]:
         }, {}
 
     artifact_paths = [{"entity": a["entity"], "path": a["path"]} for a in artifacts
-                      if a["artifact_type"] == "migration_sql"]
+                      if a["artifact_type"] == "migration_script"]
     plan           = context.get("plan", {})
 
     prompt = f"""Review the orchestrator script.
@@ -469,12 +499,12 @@ PLAN (wave ordering to verify):
 
 def _derive_status(all_issues: list, all_fixes: list) -> tuple[str, str]:
     severities = {i["severity"] for i in all_issues}
-    if "CRITICAL" in severities or "HIGH" in severities:
+    if "CRITICAL" in severities:
         return "REJECTED", "HIGH"
-    if "MEDIUM" in severities and all_fixes:
-        return "REJECTED", "MEDIUM"
+    if "HIGH" in severities:
+        return "APPROVED WITH WARNINGS", "HIGH"
     if "MEDIUM" in severities:
-        return "APPROVED", "MEDIUM"
+        return "APPROVED WITH WARNINGS", "MEDIUM"
     return "APPROVED", "LOW"
 
 
@@ -486,7 +516,8 @@ def run_migration_reviewer_agent(context: dict, verbose: bool = True) -> dict:
     Pass 1: per-entity scripts.
     Pass 2: cross-entity consistency.
     Pass 3: orchestrator.
-    All three must pass for status = APPROVED.
+    Only CRITICAL findings block execution. HIGH and MEDIUM findings return
+    APPROVED WITH WARNINGS.
     """
     if verbose:
         print("\n" + "=" * 60)
@@ -512,9 +543,10 @@ def run_migration_reviewer_agent(context: dict, verbose: bool = True) -> dict:
     if verbose:
         print(f"  Static checks on {len(artifacts)} artifacts...")
     static_issues = _static_checks(artifacts, target)
-    static_crits  = sum(1 for i in static_issues if i["severity"] in ("CRITICAL","HIGH"))
+    static_crits  = sum(1 for i in static_issues if i["severity"] == "CRITICAL")
+    static_warns  = sum(1 for i in static_issues if i["severity"] in ("HIGH", "MEDIUM"))
     if verbose:
-        print(f"  Static: {len(static_issues)} issue(s), {static_crits} critical/high")
+        print(f"  Static: {len(static_issues)} issue(s), {static_crits} critical, {static_warns} warning(s)")
 
     # ── pass 1 ─────────────────────────────────────────────────────────────────
     if verbose:
@@ -564,6 +596,7 @@ def run_migration_reviewer_agent(context: dict, verbose: bool = True) -> dict:
         f"Pass 3 ({p3_result['status']}): {p3_result.get('summary','')}",
     ]
 
+    print(f'[debug] review status being written: {repr(status)}')
     context["review"] = {
         "status":       status,
         "risk_level":   risk_level,

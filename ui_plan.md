@@ -10,7 +10,7 @@ This document outlines the step-by-step plan for building the OnboardIQ Web UI u
     1.  Add `nicegui` to `requirements.txt`.
     2.  Create the `frontend/` directory structure.
     3.  Write a simple `frontend/main.py` file with a placeholder page to verify server booting.
-*   **Verification:** Run `python frontend/main.py` and access `http://localhost:8080` in the browser.
+*   **Verification:** Run `python frontend/main.py` and access `http://localhost:8081` in the browser.
 
 ---
 

@@ -1,10 +1,16 @@
 import sys
 from pathlib import Path
+import importlib
 
 # Add root workspace and backend directories to path
 root_dir = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(root_dir))
 sys.path.insert(0, str(root_dir / "backend"))
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 import os
 from context import fresh_context, save_snapshot, normalise_target
@@ -25,6 +31,46 @@ from config import load_and_validate_env
 SUPPORTED = {".csv", ".json", ".sql"}
 
 
+def _reload_agent_runners() -> None:
+    """
+    Refresh agent modules so long-lived processes pick up code edits
+    on the next pipeline run without a manual restart.
+    """
+    module_names = {
+        "discovery_agent": "agents.discovery_agent",
+        "profiling_agent": "agents.profiling_agent",
+        "mapping_agent": "agents.mapping_agent",
+        "specification_agent": "agents.specification_agent",
+        "readiness_agent": "agents.readiness_agent",
+        "planning_agent": "agents.planning_agent",
+        "migration_generator_agent": "agents.migration_generator_agent",
+        "migration_reviewer_agent": "agents.migration_reviewer_agent",
+        "migration_repair_agent": "agents.migration_repair_agent",
+        "migration_execution_agent": "agents.migration_execution_agent",
+        "migration_validation_agent": "agents.migration_validation_agent",
+        "migration_approval_agent": "agents.migration_approval_agent",
+    }
+    loaded = {}
+    for key, module_name in module_names.items():
+        module = importlib.import_module(module_name)
+        loaded[key] = importlib.reload(module)
+
+    globals().update({
+        "run_discovery_agent": loaded["discovery_agent"].run_discovery_agent,
+        "run_profiling_agent": loaded["profiling_agent"].run_profiling_agent,
+        "run_mapping_agent": loaded["mapping_agent"].run_mapping_agent,
+        "run_specification_agent": loaded["specification_agent"].run_specification_agent,
+        "run_readiness_agent": loaded["readiness_agent"].run_readiness_agent,
+        "run_planning_agent": loaded["planning_agent"].run_planning_agent,
+        "run_migration_generator_agent": loaded["migration_generator_agent"].run_migration_generator_agent,
+        "run_migration_reviewer_agent": loaded["migration_reviewer_agent"].run_migration_reviewer_agent,
+        "run_migration_repair_agent": loaded["migration_repair_agent"].run_migration_repair_agent,
+        "run_migration_execution_agent": loaded["migration_execution_agent"].run_migration_execution_agent,
+        "run_migration_validation_agent": loaded["migration_validation_agent"].run_migration_validation_agent,
+        "run_migration_approval_agent": loaded["migration_approval_agent"].run_migration_approval_agent,
+    })
+
+
 def list_files(input_dir: str) -> list:
     input_path = Path(input_dir)
     if not input_path.exists() or not input_path.is_dir():
@@ -38,6 +84,7 @@ def list_files(input_dir: str) -> list:
 def run_pipeline(input_dir: str = None, verbose: bool = True, chat: bool = False) -> dict:
     import config
     load_and_validate_env()
+    _reload_agent_runners()
 
     if not input_dir:
         input_dir = str(config.INPUT_DIR)
@@ -105,7 +152,15 @@ def run_pipeline(input_dir: str = None, verbose: bool = True, chat: bool = False
         save_snapshot(ctx)
 
     # Agent 10 — Execution Agent (runs only if approved)
-    if ctx.get("review", {}).get("status") == "APPROVED":
+    PASSING_STATUSES = {"APPROVED", "APPROVED WITH WARNINGS"}
+    if ctx.get("review", {}).get("status") not in PASSING_STATUSES:
+        print("  ! Skipping Execution, Validation, and Approval because Migration Review was not approved.")
+        ctx["execution"] = {
+            "status": "SKIPPED",
+            "reason": "Migration review was not approved; downstream stages were intentionally not run.",
+        }
+        save_snapshot(ctx)
+    else:
         run_migration_execution_agent(ctx, verbose=verbose)
         save_snapshot(ctx)
 
@@ -116,8 +171,6 @@ def run_pipeline(input_dir: str = None, verbose: bool = True, chat: bool = False
         # Agent 12 — Approval Agent
         run_migration_approval_agent(ctx, verbose=verbose)
         save_snapshot(ctx)
-    else:
-        print("  ! Skipping Execution, Validation, and Approval because Migration Review was not APPROVED.")
 
     # Agent 13 — Conversational Assistant (optional)
     if chat:

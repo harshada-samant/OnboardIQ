@@ -1,8 +1,10 @@
+import os
 import sys
 import threading
 import uuid
 import json
 import shutil
+import importlib
 from datetime import datetime
 from pathlib import Path
 
@@ -38,9 +40,50 @@ from backend.execution_store import (
     transition_step,
     complete_execution,
     get_execution,
-    is_user_running,
+    claim_execution,
     append_stdout_line
 )
+
+
+def _reload_agent_runners() -> None:
+    """
+    Refresh agent modules so a long-lived backend process picks up code edits
+    on the next pipeline run without a manual restart.
+    """
+    module_names = {
+        "discovery_agent": "agents.discovery_agent",
+        "profiling_agent": "agents.profiling_agent",
+        "mapping_agent": "agents.mapping_agent",
+        "specification_agent": "agents.specification_agent",
+        "readiness_agent": "agents.readiness_agent",
+        "planning_agent": "agents.planning_agent",
+        "migration_generator_agent": "agents.migration_generator_agent",
+        "migration_reviewer_agent": "agents.migration_reviewer_agent",
+        "migration_repair_agent": "agents.migration_repair_agent",
+        "migration_execution_agent": "agents.migration_execution_agent",
+        "migration_validation_agent": "agents.migration_validation_agent",
+        "migration_approval_agent": "agents.migration_approval_agent",
+    }
+
+    loaded = {}
+    for key, module_name in module_names.items():
+        module = importlib.import_module(module_name)
+        loaded[key] = importlib.reload(module)
+
+    globals().update({
+        "run_discovery_agent": loaded["discovery_agent"].run_discovery_agent,
+        "run_profiling_agent": loaded["profiling_agent"].run_profiling_agent,
+        "run_mapping_agent": loaded["mapping_agent"].run_mapping_agent,
+        "run_specification_agent": loaded["specification_agent"].run_specification_agent,
+        "run_readiness_agent": loaded["readiness_agent"].run_readiness_agent,
+        "run_planning_agent": loaded["planning_agent"].run_planning_agent,
+        "run_migration_generator_agent": loaded["migration_generator_agent"].run_migration_generator_agent,
+        "run_migration_reviewer_agent": loaded["migration_reviewer_agent"].run_migration_reviewer_agent,
+        "run_migration_repair_agent": loaded["migration_repair_agent"].run_migration_repair_agent,
+        "run_migration_execution_agent": loaded["migration_execution_agent"].run_migration_execution_agent,
+        "run_migration_validation_agent": loaded["migration_validation_agent"].run_migration_validation_agent,
+        "run_migration_approval_agent": loaded["migration_approval_agent"].run_migration_approval_agent,
+    })
 
 class LogRedirector:
     """
@@ -107,7 +150,7 @@ def export_execution_json(execution_id: str, output_dir: Path, username: str = N
         "execution_id": execution_id,
         "user_id": record["user_id"],
         "username": username,
-        "status": "success" if record["status"] == "completed" else "failed",
+        "status": "success" if record["status"] in ("completed", "skipped") else "failed",
         "start_time": start_time,
         "end_time": end_time,
         "input_dir": str(config.INPUT_DIR),
@@ -126,6 +169,14 @@ def export_execution_json(execution_id: str, output_dir: Path, username: str = N
     print(f"Exported execution JSON to: {export_file}")
 
 
+def _wipe_migration_output_dir() -> None:
+    migration_dir = os.path.join(str(config.OUTPUT_DIR), "migration")
+    if os.path.exists(migration_dir):
+        shutil.rmtree(migration_dir)
+    os.makedirs(migration_dir, exist_ok=True)
+    print(f"  [migration] Wiped and recreated migration dir: {migration_dir}")
+
+
 def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None) -> str:
     """
     Executes the sequential agents onboarding pipeline for the specified user ID.
@@ -136,11 +187,14 @@ def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None
         execution_id = str(uuid.uuid4())
     username = None
     ctx = None
+    _reload_agent_runners()
     
     # 1. Single-user concurrency lock check
-    if is_user_running(user_id):
+    if get_execution(execution_id) is None:
+        start_execution(execution_id, user_id, status="starting")
+
+    if not claim_execution(execution_id, user_id):
         err_msg = "User already has an active pipeline execution running."
-        start_execution(execution_id, user_id)
         complete_execution(execution_id, "failed", err_msg)
         
         # Resolve username if possible to write metadata export
@@ -162,13 +216,15 @@ def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None
             username = get_username_by_id(user_id)
         except ValueError as e:
             # Controlled failure: User does not exist
-            start_execution(execution_id, user_id)
+            if get_execution(execution_id) is None:
+                start_execution(execution_id, user_id)
             complete_execution(execution_id, "failed", str(e))
             export_execution_json(execution_id, Path(config.OUTPUT_DIR), None)
             return execution_id
 
-        # Initialize execution entry in store
-        start_execution(execution_id, user_id)
+        # Initialize execution entry in store unless the service already created it.
+        if get_execution(execution_id) is None:
+            start_execution(execution_id, user_id)
 
         # 3. Verify config.OUTPUT_DIR matches the user's isolated workspace outputs directory
         expected_output_dir = config.WORKSPACES_DIR / "users" / username / "outputs"
@@ -277,6 +333,7 @@ def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None
 
             # Migration Generator
             transition_step(execution_id, "MigrationGenerator", 96, "Starting Migration Code Generator...")
+            _wipe_migration_output_dir()
             run_migration_generator_agent(ctx, verbose=True)
             save_snapshot(ctx)
 
@@ -296,8 +353,9 @@ def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None
                 run_migration_reviewer_agent(ctx, verbose=True)
                 save_snapshot(ctx)
 
-            # Migration Execution (only if approved)
-            if ctx.get("review", {}).get("status") == "APPROVED":
+            # Migration Execution (only if approved or approved with warnings)
+            PASSING_STATUSES = {"APPROVED", "APPROVED WITH WARNINGS"}
+            if ctx["review"]["status"] in PASSING_STATUSES:
                 transition_step(execution_id, "MigrationExecution", 99, "Starting Migration Execution Agent...")
                 run_migration_execution_agent(ctx, verbose=True)
                 save_snapshot(ctx)
@@ -333,6 +391,7 @@ def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None
                 run_planning_agent(ctx, verbose=True)
             elif target_step == "MigrationGenerator":
                 ctx["target_database"] = "duckdb" if "dynamo" not in schema_name else "dynamodb"
+                _wipe_migration_output_dir()
                 run_migration_generator_agent(ctx, verbose=True)
             elif target_step == "MigrationReviewer":
                 ctx["target_database"] = "duckdb" if "dynamo" not in schema_name else "dynamodb"
@@ -352,6 +411,7 @@ def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None
                 
                 # 7. Migration Generator
                 transition_step(execution_id, "MigrationAgent", 15, "Starting Migration Code Generator...")
+                _wipe_migration_output_dir()
                 run_migration_generator_agent(ctx, verbose=True)
                 save_snapshot(ctx)
                 if ctx.get("migration", {}).get("status") == "FAILED":
@@ -377,7 +437,8 @@ def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None
                     save_snapshot(ctx)
 
                 # 10. Execution Agent (runs only if approved)
-                if ctx.get("review", {}).get("status") == "APPROVED":
+                PASSING_STATUSES = {"APPROVED", "APPROVED WITH WARNINGS"}
+                if ctx["review"]["status"] in PASSING_STATUSES:
                     transition_step(execution_id, "MigrationAgent", 70, "Starting Migration Execution Agent...")
                     run_migration_execution_agent(ctx, verbose=True)
                     save_snapshot(ctx)
@@ -396,14 +457,42 @@ def run_pipeline(user_id: int, execution_id: str = None, target_step: str = None
                     run_migration_approval_agent(ctx, verbose=True)
                     save_snapshot(ctx)
                 else:
-                    msg = "Skipping Execution, Validation, and Approval because Migration Review was not APPROVED."
+                    msg = "Skipping Execution, Validation, and Approval because Migration Review was not approved."
                     print(f"  ! {msg}")
-                    raise ValueError(msg)
+                    complete_execution(execution_id, "skipped", msg)
+                    return execution_id
                 
             save_snapshot(ctx)
 
-        # Success completion
-        complete_execution(execution_id, "completed")
+        # Determine final status from agents' outcomes rather than assuming success.
+        final_error = None
+        try:
+            approval_rec = ctx.get("approval", {}) if ctx else {}
+            execution_rec = ctx.get("execution", {}) if ctx else {}
+            validation_rec = ctx.get("validation", {}) if ctx else {}
+
+            # Approval rejection, execution not SUCCESS, or validation not PASS => mark failed
+            approval_status = approval_rec.get("status")
+            exec_status = execution_rec.get("status")
+            val_status = validation_rec.get("status")
+
+            failure_reasons = []
+            if approval_status and approval_status.upper() == "REJECTED":
+                failure_reasons.append(f"approval_status={approval_status}")
+            if exec_status and exec_status.upper() != "SUCCESS":
+                # treat PARTIAL/FAILED as non-success
+                failure_reasons.append(f"execution_status={exec_status}")
+            if val_status and val_status.upper() != "PASS":
+                failure_reasons.append(f"validation_status={val_status}")
+
+            if failure_reasons:
+                final_error = "; ".join(failure_reasons)
+                complete_execution(execution_id, "failed", final_error)
+            else:
+                complete_execution(execution_id, "completed")
+        except Exception as status_err:
+            # If any unexpected error occurs while computing final status, fail safely.
+            complete_execution(execution_id, "failed", str(status_err))
 
     except Exception as e:
         # Controlled failure state capture
