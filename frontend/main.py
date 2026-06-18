@@ -6,6 +6,7 @@ Loads modular components: middleware, logo, and page views.
 """
 
 import os
+import logging
 import socket
 import sys
 from pathlib import Path
@@ -15,6 +16,29 @@ root_dir = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(root_dir))
 sys.path.insert(0, str(root_dir / "backend"))
 sys.path.insert(0, str(root_dir / "frontend"))
+
+# Keep the NiceGUI terminal quiet by default; stderr still carries real errors.
+class _QuietStdout:
+    def write(self, text: str) -> int:
+        return len(text)
+
+    def flush(self) -> None:
+        return None
+
+    def isatty(self) -> bool:
+        return False
+
+
+if os.getenv("OBQ_QUIET_TERMINAL", "true").strip().lower() not in {"0", "false", "no"}:
+    sys.stdout = _QuietStdout()
+
+# Keep framework noise out of the terminal unless explicitly raised.
+logging.basicConfig(
+    level=getattr(logging, os.getenv("OBQ_LOG_LEVEL", "WARNING").strip().upper(), logging.WARNING),
+    format="%(levelname)s:%(name)s:%(message)s",
+)
+for noisy_logger in ("uvicorn", "uvicorn.access", "uvicorn.error", "nicegui"):
+    logging.getLogger(noisy_logger).setLevel(logging.WARNING)
 
 # Load environment variables from .env
 from config import load_and_validate_env

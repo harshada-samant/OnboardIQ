@@ -6,6 +6,7 @@ Pure NiceGUI — no raw HTML inputs or JavaScript.
 """
 
 from datetime import datetime
+import logging
 from pathlib import Path
 import pandas as pd
 from nicegui import app, ui, Client
@@ -28,6 +29,8 @@ from backend.database import get_username_by_id
 from backend.adapters.storage_interface import LocalStorageBackend, S3StorageBackend
 from backend.adapters.s3_source_adapter import S3SourceAdapter
 import config
+
+logger = logging.getLogger(__name__)
 
 def format_size(size_bytes: int) -> str:
     """Format file size in bytes to a human-readable string."""
@@ -190,7 +193,7 @@ async def dashboard_page(client: Client):
                             except Exception as e:
                                 schema_options = []
                                 current_schema = None
-                                print(f"Error loading target schema list: {e}")
+                                logger.debug("Error loading target schema list: %s", e)
                             
                             def save_schema():
                                 selected = schema_dropdown.value
@@ -358,7 +361,7 @@ async def dashboard_page(client: Client):
                                     files = get_user_source_files(user_id)
                                 except Exception as e:
                                     files = []
-                                    print(f"Error loading source files: {e}")
+                                    logger.debug("Error loading source files: %s", e)
 
                                 if not files:
                                     with source_container:
@@ -391,7 +394,7 @@ async def dashboard_page(client: Client):
                                     files = get_user_output_files(user_id)
                                 except Exception as e:
                                     files = []
-                                    print(f"Error loading output files: {e}")
+                                    logger.debug("Error loading output files: %s", e)
 
                                 if not files:
                                     with output_container:
@@ -440,7 +443,7 @@ async def dashboard_page(client: Client):
                         progress_info = get_pipeline_progress(user_id)
                         return progress_info["completed_steps"], progress_info["next_step"]
                     except Exception as e:
-                        print(f"Error fetching progress: {e}")
+                        logger.debug("Error fetching progress: %s", e)
                         return [], "Discovery"
 
                 def load_output_json(filename: str) -> dict:
@@ -451,7 +454,7 @@ async def dashboard_page(client: Client):
                             with open(path, "r", encoding="utf-8") as f:
                                 return json.load(f)
                         except Exception as e:
-                            print(f"Error loading {filename}: {e}")
+                            logger.debug("Error loading %s: %s", filename, e)
                     return None
 
                 def load_output_text(filename: str) -> str:
@@ -461,7 +464,7 @@ async def dashboard_page(client: Client):
                             with open(path, "r", encoding="utf-8") as f:
                                 return f.read()
                         except Exception as e:
-                            print(f"Error loading {filename}: {e}")
+                            logger.debug("Error loading %s: %s", filename, e)
                     return ""
 
                 def format_log_to_html(log_entry):
@@ -657,7 +660,7 @@ async def dashboard_page(client: Client):
                             refresh_outputs() # Refresh Output Files list
                             
                     except Exception as ex:
-                        print(f"Error polling pipeline execution: {ex}")
+                        logger.debug("Error polling pipeline execution: %s", ex)
 
                 polling_timer = ui.timer(1.0, poll_status, active=False)
 

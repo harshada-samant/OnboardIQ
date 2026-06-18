@@ -7,9 +7,13 @@ Preserves the original two-panel layout:
   RIGHT → logo avatar, welcome text, NiceGUI input fields, sign-in button
 """
 
+import logging
+
 from fastapi.responses import RedirectResponse
 from nicegui import app, ui
 from frontend.logo import LOGO_38, LOGO_46
+
+logger = logging.getLogger(__name__)
 
 
 @ui.page('/login')
@@ -308,8 +312,7 @@ def login_page():
             app.storage.user['authenticated'] = True
             app.storage.user['user_id'] = user_record['id']
             app.storage.user['username'] = user_record['username']
-            # validation output
-            print(f"[AUTH_SUCCESS] Session contents: {dict(app.storage.user)}")
+            logger.debug("Authenticated user %s", user_record['username'])
             ensure_user_workspace(user_record['username'])
             import config
             config.set_user_workspace(user_record['username'])
