@@ -447,8 +447,8 @@ def check_pending_confirmation(user_input: str, context: dict, verbose: bool = T
         # Increment to 2
         pending["confirmations_received"] = 2
         try:
-            if not pending_path.exists():
-                raise PermissionError(f"Access denied: Creation of new file '{pending_path}' is forbidden. Conversational agent can only modify existing files.")
+            if not is_safe_output_path(pending_path):
+                raise PermissionError(f"Access denied: Modification of path '{pending_path}' outside of user output directory is forbidden.")
             with open(pending_path, "w", encoding="utf-8") as f:
                 json.dump(pending, f, indent=2)
         except Exception as e:
@@ -485,8 +485,8 @@ def _extract_and_process_mapping_action(reply: str, context: dict, verbose: bool
         # Save to pending file
         pending_path = Path(config.OUTPUT_DIR) / "pending_mapping_action.json"
         os.makedirs(config.OUTPUT_DIR, exist_ok=True)
-        if not pending_path.exists():
-            raise PermissionError(f"Access denied: Creation of new file '{pending_path}' is forbidden. Conversational agent can only modify existing files.")
+        if not is_safe_output_path(pending_path):
+            raise PermissionError(f"Access denied: Modification of path '{pending_path}' outside of user output directory is forbidden.")
         pending_data = {
             "action": action,
             "confirmations_received": 1
@@ -523,7 +523,9 @@ def _handle_mapping_action(action: dict, context: dict, verbose: bool) -> str:
     for p in target_paths:
         if not is_safe_output_path(p):
             raise PermissionError(f"Access denied: Modification of path '{p}' outside of user output directory is forbidden.")
-        if not os.path.exists(p):
+        # Allow user_mappings.json to not exist initially (conversational agent can create it)
+        is_user_mappings = (p == os.path.join(config.OUTPUT_DIR, "user_mappings.json"))
+        if not is_user_mappings and not os.path.exists(p):
             raise PermissionError(f"Access denied: Creation of new file '{p}' is forbidden. Conversational agent can only modify existing files.")
 
     if act == "add":
